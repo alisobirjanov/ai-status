@@ -82,3 +82,8 @@ Remove-Item -Recurse "$env:APPDATA\Pulse Dev"  # start again from the chooser (q
   identifier, so it hands over to the running Pulse and exits.
 - **`taskkill /IM pulse.exe`**: that is the installed Pulse. Use
   `npm run app:stop`.
+
+## Known issues
+
+Problems found and understood but deliberately left for later — with how to
+reproduce them and a ready fix — are in [known-issues.md](known-issues.md).
