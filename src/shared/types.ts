@@ -71,6 +71,8 @@ export interface Settings {
   ringShows: RingShows;
   limitLetters: boolean;
   panelVisible: boolean;
+  autoCollapse: boolean;
+  showsCard: boolean;
   checksForUpdates: boolean;
 }
 
@@ -98,6 +100,10 @@ export interface Layout {
   pointerWidth: number;
   margin: number;
   visible: Rect;
+  /** The screen edge the rail is fused to; null floating. */
+  dock: "left" | "right" | null;
+  /** How far a docked rail's ends reach beyond `rail`, above and below. */
+  flare: number;
 }
 
 export interface SettingsPatch {
@@ -110,6 +116,8 @@ export interface SettingsPatch {
   ringShows?: RingShows;
   limitLetters?: boolean;
   panelVisible?: boolean;
+  autoCollapse?: boolean;
+  showsCard?: boolean;
   checksForUpdates?: boolean;
 }
 

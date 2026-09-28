@@ -72,6 +72,8 @@ struct SettingsPatch {
     ring_shows: Option<RingShows>,
     limit_letters: Option<bool>,
     panel_visible: Option<bool>,
+    auto_collapse: Option<bool>,
+    shows_card: Option<bool>,
     checks_for_updates: Option<bool>,
 }
 
@@ -89,6 +91,8 @@ impl SettingsPatch {
             ring_shows: Some(defaults.ring_shows),
             limit_letters: Some(defaults.limit_letters),
             panel_visible: Some(defaults.panel_visible),
+            auto_collapse: Some(defaults.auto_collapse),
+            shows_card: Some(defaults.shows_card),
             checks_for_updates: Some(defaults.checks_for_updates),
         }
     }
@@ -122,6 +126,12 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
     }
     if let Some(visible) = patch.panel_visible {
         settings.panel_visible = visible;
+    }
+    if let Some(collapse) = patch.auto_collapse {
+        settings.auto_collapse = collapse;
+    }
+    if let Some(card) = patch.shows_card {
+        settings.shows_card = card;
     }
     if let Some(checks) = patch.checks_for_updates {
         settings.checks_for_updates = checks;
@@ -213,7 +223,12 @@ fn panel_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
         ],
     )
     .map_err(|e| e.to_string())?;
-    window.popup_menu(&menu).map_err(|e| e.to_string())
+    // The pointer is on the menu, not the rail, for as long as it is open:
+    // without this a docked rail would wind down to its sliver under it.
+    panel::set_menu_open(&app, true);
+    let shown = window.popup_menu(&menu).map_err(|e| e.to_string());
+    panel::set_menu_open(&app, false);
+    shown
 }
 
 #[tauri::command]
@@ -464,6 +479,9 @@ mod tests {
             limit_letters: false,
             panel_visible: false,
             rail_position: Some((10, 20)),
+            rail_dock: Some(panel::Side::Left),
+            auto_collapse: false,
+            shows_card: false,
             login_item_decided: true,
             checks_for_updates: false,
             update_announced: Some("0.2.0".into()),
@@ -473,6 +491,7 @@ mod tests {
         assert_eq!(settings.enabled, vec![Provider::Codex]);
         assert!(settings.has_chosen);
         assert_eq!(settings.rail_position, Some((10, 20)));
+        assert_eq!(settings.rail_dock, Some(panel::Side::Left));
         assert!(settings.login_item_decided);
         assert_eq!(settings.update_announced.as_deref(), Some("0.2.0"));
         // Everything else is as a first launch has it.
@@ -480,6 +499,7 @@ mod tests {
             enabled: Vec::new(),
             has_chosen: false,
             rail_position: None,
+            rail_dock: None,
             login_item_decided: false,
             update_announced: None,
             ..settings

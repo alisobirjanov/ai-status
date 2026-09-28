@@ -24,13 +24,34 @@ body {
   cursor: default;
 }
 
+/* What the rail is drawn on: a capsule floating, fused to the screen edge
+   docked, a sliver tucked away. One outline, redrawn at every step as it
+   opens and closes (`main.ts`), so it reads as one thing changing size. */
+#surface {
+  position: absolute;
+  overflow: visible;
+  filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.32));
+}
+
+#surface path {
+  fill: var(--surface);
+  /* Drawn under the fill, so only its outer half shows: a hairline outside. */
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 2px;
+  paint-order: stroke;
+  transition: fill 0.2s ease;
+}
+
+/* The rings. They come in once the surface has opened enough to hold them,
+   and are gone before it closes, or they would fade over a sliver. */
 #rail {
   position: absolute;
-  background: var(--surface);
-  border-radius: 32px;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.09),
-    0 8px 22px rgba(0, 0, 0, 0.32);
+  transition: opacity 0.18s ease-out 0.12s;
+}
+
+#rail.tucked {
+  opacity: 0;
+  transition: opacity 0.1s ease-out;
 }
 
 /* Each service's place on it. What is inside one is `src/shared/rail.css`. */

@@ -4,6 +4,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::model::{Provider, ProviderUsage, UsageWindow, WindowKind};
+use crate::panel::Side;
 use crate::paths;
 use crate::providers::codex;
 
@@ -33,6 +34,15 @@ pub struct Settings {
     pub panel_visible: bool,
     /// The rail's top-left corner on screen, in physical pixels.
     pub rail_position: Option<(i32, i32)>,
+    /// The side of the screen the rail is fused to, if it was left against
+    /// one. Kept by Rust with `rail_position`, never by a page.
+    #[serde(deserialize_with = "or_default")]
+    pub rail_dock: Option<Side>,
+    /// Docked, the rail winds down to a sliver against the edge while the
+    /// pointer is elsewhere. Off the edge it always stays open.
+    pub auto_collapse: bool,
+    /// Hovering a ring opens its card. Off, the rail is only the rings.
+    pub shows_card: bool,
     /// Launch at login is on by default and decided **once**: a reader who
     /// turned it off is never turned back on by a later launch.
     pub login_item_decided: bool,
@@ -57,6 +67,9 @@ impl Default for Settings {
             limit_letters: true,
             panel_visible: true,
             rail_position: None,
+            rail_dock: None,
+            auto_collapse: true,
+            shows_card: true,
             login_item_decided: false,
             checks_for_updates: true,
             update_announced: None,
@@ -180,6 +193,11 @@ mod tests {
         assert!(settings.panel_visible);
         // A file from before updates were checked has the check on.
         assert!(settings.checks_for_updates);
+        // One from before docking has a floating rail that tucks away once docked.
+        assert_eq!(settings.rail_dock, None);
+        assert!(settings.auto_collapse);
+        // And one from before the card could be switched off shows it.
+        assert!(settings.shows_card);
         assert_eq!(settings.update_announced, None);
     }
 

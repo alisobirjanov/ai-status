@@ -2,7 +2,7 @@
 // reads, how the rail looks, and when Pulse looks.
 
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronDown, CircleAlert, Hourglass, Info, PanelRight, RotateCw, Sparkles, Type } from "lucide";
+import { ArrowRightToLine, ChevronDown, CircleAlert, Hourglass, Info, PanelRight, RotateCw, Sparkles, SquareMousePointer, Type } from "lucide";
 
 import { reasonText, relative } from "../shared/format";
 import { icon as productMark } from "../shared/icons";
@@ -222,6 +222,8 @@ export function general(update: (patch: SettingsPatch) => void): Page {
   let shownRing: RingShows | null = null;
 
   const panelTile = toggleTile(PanelRight, t("showPanel"), t("showPanelHint"), (on) => update({ panelVisible: on }));
+  const collapseTile = toggleTile(ArrowRightToLine, t("autoCollapse"), t("autoCollapseHint"), (on) => update({ autoCollapse: on }));
+  const cardTile = toggleTile(SquareMousePointer, t("showsCard"), t("showsCardHint"), (on) => update({ showsCard: on }));
   const lettersTile = toggleTile(Type, t("limitLetters"), t("limitLettersHint"), (on) => update({ limitLetters: on }));
   const remainingTile = toggleTile(Hourglass, t("showsRemaining"), t("showsRemainingHint"), (on) => update({ showsRemaining: on }));
 
@@ -245,7 +247,8 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     "section",
     sectionHead(t("panel"), t("panelNote")),
     el("article", "card", heading(t("ringShows"), t("ringShowsHint")), ringRow),
-    el("div", "tiles", panelTile.element, lettersTile.element, remainingTile.element),
+    el("div", "tiles", panelTile.element, collapseTile.element, cardTile.element),
+    el("div", "tiles two", lettersTile.element, remainingTile.element),
     el("article", "card threshold", heading(t("warningAt"), t("warningHint")), stepRow),
   );
 
@@ -300,6 +303,8 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     }
 
     panelTile.switch.set(settings.panelVisible);
+    collapseTile.switch.set(settings.autoCollapse);
+    cardTile.switch.set(settings.showsCard);
     lettersTile.switch.set(settings.limitLetters);
     // Only a ring with both limits on it has two figures to tell apart.
     lettersTile.disable(!settings.ringShows.startsWith("both"), t("limitLettersOff"));
