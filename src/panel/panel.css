@@ -1,0 +1,215 @@
+/* The floating panel. Sizes are the budgets `panel.rs` sends in `Layout`;
+   what is fixed here is only what sits inside a ring or a card. */
+
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --surface: #000;
+  --text: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(255, 255, 255, 0.52);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
+  --track: rgba(255, 255, 255, 0.14);
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Transparent: everything but the rail and the card is desktop. */
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+#rail {
+  position: absolute;
+  background: var(--surface);
+  border-radius: 32px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.09),
+    0 8px 22px rgba(0, 0, 0, 0.32);
+}
+
+.item {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.ring svg.gauge {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.ring .usage {
+  transition: stroke-dasharray 0.35s ease, stroke 0.35s ease, opacity 0.2s ease;
+}
+
+.ring.refreshing .usage {
+  opacity: 0.45;
+}
+
+.ring .turning {
+  transform-origin: 20px 20px;
+  animation: turn 1s linear infinite;
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ring .mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.label {
+  margin-top: 6px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The card: a body and a pointer aimed at the ring, one shadow for both. */
+
+#card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+
+#card[hidden] {
+  display: none;
+}
+
+.card-body {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: appear 0.09s ease-out;
+}
+
+.card-tail {
+  position: absolute;
+  width: 20px;
+  height: 40px;
+}
+
+.card-tail path {
+  fill: var(--surface);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+}
+
+.row-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.bar > div {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease, background-color 0.35s ease;
+}
+
+.row-facts {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.figure {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.reset {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.value-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.value-row .value {
+  font-weight: 600;
+}
+
+.message {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.footnote {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}

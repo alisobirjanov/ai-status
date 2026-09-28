@@ -1,0 +1,39 @@
+[package]
+name = "pulse"
+version = "0.1.0"
+description = "Claude Code and Codex usage on the Windows desktop"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+
+[lib]
+name = "pulse_lib"
+crate-type = ["rlib"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
+dirs = "7.0.0"
+# SChannel rather than rustls: it trusts the Windows certificate store, which is
+# what a corporate proxy's certificate is installed into, and needs no C
+# toolchain beyond MSVC.
+reqwest = { version = "0.13.3", default-features = false, features = ["json", "native-tls", "system-proxy", "http2", "charset"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sys-locale = "0.3.2"
+tauri = { version = "2.11.6", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2.5.1"
+tauri-plugin-single-instance = "2.4.5"
+tokio = { version = "1.53.1", features = ["rt", "macros", "time", "sync", "process", "io-util"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Console", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }

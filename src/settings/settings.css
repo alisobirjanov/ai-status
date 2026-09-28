@@ -1,0 +1,251 @@
+/* The settings window, in the system's light or dark appearance. */
+
+:root {
+  color-scheme: light dark;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  --page: #f3f3f3;
+  --surface: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --text: #1b1b1b;
+  --text-secondary: #5f5f5f;
+  --accent: #005fb8;
+  --accent-text: #ffffff;
+  --control: rgba(0, 0, 0, 0.05);
+  --control-border: rgba(0, 0, 0, 0.14);
+  --badge: rgba(15, 123, 15, 0.12);
+  --badge-text: #0f7b0f;
+  --warn: #c42b1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #202020;
+    --surface: #2b2b2b;
+    --border: rgba(255, 255, 255, 0.07);
+    --text: #ffffff;
+    --text-secondary: #c5c5c5;
+    --accent: #60cdff;
+    --accent-text: #000000;
+    --control: rgba(255, 255, 255, 0.06);
+    --control-border: rgba(255, 255, 255, 0.12);
+    --badge: rgba(108, 203, 95, 0.16);
+    --badge-text: #6ccb5f;
+    --warn: #ff99a4;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 24px 28px;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 22px 0 8px;
+}
+
+.chooser {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.chooser p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.line .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.provider-icon {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  background: var(--control);
+}
+
+.badge {
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--badge);
+  color: var(--badge-text);
+  white-space: nowrap;
+}
+
+.badge.muted {
+  background: var(--control);
+  color: var(--text-secondary);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: 13px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.facts dt {
+  color: var(--text-secondary);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.facts dd.problem {
+  color: var(--warn);
+}
+
+button,
+select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--control);
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  padding: 5px 12px;
+  min-height: 32px;
+}
+
+button:hover,
+select:hover {
+  filter: brightness(0.97);
+}
+
+@media (prefers-color-scheme: dark) {
+  button:hover,
+  select:hover {
+    filter: brightness(1.2);
+  }
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
+select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* A Windows-style switch. */
+input.switch {
+  appearance: none;
+  flex: none;
+  width: 40px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid var(--text-secondary);
+  background: transparent;
+  position: relative;
+  transition: background-color 0.12s ease;
+}
+
+input.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.12s ease;
+}
+
+input.switch:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+input.switch:checked::after {
+  background: var(--accent-text);
+  transform: translateX(20px);
+}
+
+input.switch:disabled {
+  opacity: 0.45;
+}
+
+input.switch:focus-visible,
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.about {
+  margin-top: 24px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
