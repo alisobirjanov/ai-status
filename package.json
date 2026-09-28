@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "check": "tsc --noEmit",
-    "tauri": "tauri"
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml && tsc --noEmit",
+    "tauri": "tauri",
+    "app": "node scripts/dev-app.mjs",
+    "app:start": "node scripts/dev-app.mjs start",
+    "app:stop": "node scripts/dev-app.mjs stop",
+    "app:dev": "tauri dev --config src-tauri/tauri.dev.conf.json"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1"
