@@ -9,6 +9,7 @@
 //! **nothing here renews it**: refreshing would rotate the refresh token out
 //! from under Claude Code. An expired one is reported as such.
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde_json::Value;
@@ -58,8 +59,13 @@ pub fn is_installed() -> bool {
     paths::claude_dir().exists()
 }
 
+/// Where Claude Code keeps its login.
+pub fn credentials_file() -> PathBuf {
+    paths::claude_dir().join(".credentials.json")
+}
+
 fn read_credentials() -> Option<Value> {
-    let text = std::fs::read_to_string(paths::claude_dir().join(".credentials.json")).ok()?;
+    let text = std::fs::read_to_string(credentials_file()).ok()?;
     serde_json::from_str(&text).ok()
 }
 

@@ -1,6 +1,6 @@
 //! Where things live on this PC.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
 pub fn home() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
@@ -20,6 +20,14 @@ pub fn codex_dir() -> PathBuf {
         .unwrap_or_else(|| home().join(".codex"))
 }
 
+/// A path as Settings shows it, the home folder written `~`.
+pub fn shown(path: &Path) -> String {
+    match path.strip_prefix(home()) {
+        Ok(rest) => format!("~{MAIN_SEPARATOR}{}", rest.display()),
+        Err(_) => path.display().to_string(),
+    }
+}
+
 /// Pulse's settings and banked readings: `%APPDATA%\Pulse`, or
 /// `%APPDATA%\Pulse Dev` for a dev copy. A fixed path rather than one derived
 /// from the app handle, because `--json` reads it without starting the app.
@@ -37,4 +45,18 @@ pub fn write_atomically(path: &std::path::Path, bytes: &[u8]) -> std::io::Result
     let temporary = path.with_extension("tmp");
     std::fs::write(&temporary, bytes)?;
     std::fs::rename(&temporary, path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_path_at_home_is_shown_from_the_tilde() {
+        let file = home().join(".claude").join(".credentials.json");
+        assert_eq!(shown(&file), format!("~{MAIN_SEPARATOR}.claude{MAIN_SEPARATOR}.credentials.json"));
+        // Moved elsewhere with CLAUDE_CONFIG_DIR, it is shown as it is.
+        let elsewhere = PathBuf::from(if cfg!(windows) { r"D:\claude\.credentials.json" } else { "/claude/.credentials.json" });
+        assert_eq!(shown(&elsewhere), elsewhere.display().to_string());
+    }
 }

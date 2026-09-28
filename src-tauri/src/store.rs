@@ -16,6 +16,7 @@ use tokio::sync::Notify;
 use crate::adaptive::{self, Signals};
 use crate::cache::Cache;
 use crate::model::{now_ms, Provider, ProviderUsage, Reason, Route, UsageWindow};
+use crate::paths;
 use crate::providers;
 use crate::settings::Settings;
 
@@ -48,6 +49,8 @@ pub struct AccountView {
     pub name: &'static str,
     pub enabled: bool,
     pub detected: bool,
+    /// The login it is read with, as Settings shows it.
+    pub credentials: String,
     pub usage: ProviderUsage,
     pub refreshing: bool,
     pub last_check: Option<Check>,
@@ -117,6 +120,7 @@ impl Store {
                 name: provider.display_name(),
                 enabled: settings.is_enabled(provider),
                 detected: providers::is_installed(provider),
+                credentials: paths::shown(&providers::credentials_file(provider)),
                 usage: self
                     .usage
                     .get(&provider)

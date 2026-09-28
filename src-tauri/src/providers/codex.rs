@@ -7,6 +7,8 @@
 //! when it is missing or refused this falls back to `codex app-server`, which
 //! is signed in on its own terms and renews its credentials itself.
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -63,8 +65,13 @@ pub fn is_installed() -> bool {
     paths::codex_dir().exists()
 }
 
+/// Where Codex keeps its login.
+pub fn credentials_file() -> PathBuf {
+    paths::codex_dir().join("auth.json")
+}
+
 fn load_credentials() -> Option<(String, String)> {
-    let text = std::fs::read_to_string(paths::codex_dir().join("auth.json")).ok()?;
+    let text = std::fs::read_to_string(credentials_file()).ok()?;
     let root: Value = serde_json::from_str(&text).ok()?;
     let tokens = root.get("tokens")?;
     let token = tokens.get("access_token")?.as_str()?.to_string();

@@ -75,48 +75,71 @@ struct SettingsPatch {
     checks_for_updates: Option<bool>,
 }
 
+impl SettingsPatch {
+    /// Everything Settings offers, as on a first launch — except which
+    /// services are on, since turning them off would empty the rail.
+    fn defaults() -> SettingsPatch {
+        let defaults = Settings::default();
+        SettingsPatch {
+            enabled: None,
+            codex_source: Some(defaults.codex_source),
+            refresh_minutes: Some(defaults.refresh_minutes.unwrap_or(0)),
+            shows_remaining: Some(defaults.shows_remaining),
+            warning_at: Some(defaults.warning_at),
+            ring_shows: Some(defaults.ring_shows),
+            limit_letters: Some(defaults.limit_letters),
+            panel_visible: Some(defaults.panel_visible),
+            checks_for_updates: Some(defaults.checks_for_updates),
+        }
+    }
+}
+
+fn apply(settings: &mut Settings, patch: SettingsPatch) {
+    if let Some(enabled) = patch.enabled {
+        // Once monitoring has started the rail is never empty: nothing
+        // to hover, nothing to grab. Hiding the panel is the way out.
+        if !enabled.is_empty() || !settings.has_chosen {
+            settings.enabled = enabled;
+        }
+    }
+    if let Some(source) = patch.codex_source {
+        settings.codex_source = source;
+    }
+    if let Some(minutes) = patch.refresh_minutes {
+        settings.refresh_minutes = (minutes > 0).then_some(minutes);
+    }
+    if let Some(remaining) = patch.shows_remaining {
+        settings.shows_remaining = remaining;
+    }
+    if let Some(warning) = patch.warning_at {
+        settings.warning_at = warning;
+    }
+    if let Some(shows) = patch.ring_shows {
+        settings.ring_shows = shows;
+    }
+    if let Some(letters) = patch.limit_letters {
+        settings.limit_letters = letters;
+    }
+    if let Some(visible) = patch.panel_visible {
+        settings.panel_visible = visible;
+    }
+    if let Some(checks) = patch.checks_for_updates {
+        settings.checks_for_updates = checks;
+    }
+    // Switching a provider on is the initial choice.
+    if !settings.enabled.is_empty() {
+        settings.has_chosen = true;
+    }
+    settings.normalize();
+}
+
 #[tauri::command]
 fn update_settings(app: AppHandle, patch: SettingsPatch) {
     let state = app.state::<AppState>();
     let (old, new) = {
         let mut settings = state.settings.lock().unwrap();
         let old = settings.clone();
-        if let Some(enabled) = patch.enabled {
-            // Once monitoring has started the rail is never empty: nothing
-            // to hover, nothing to grab. Hiding the panel is the way out.
-            if !enabled.is_empty() || !settings.has_chosen {
-                settings.enabled = enabled;
-            }
-        }
-        if let Some(source) = patch.codex_source {
-            settings.codex_source = source;
-        }
-        if let Some(minutes) = patch.refresh_minutes {
-            settings.refresh_minutes = (minutes > 0).then_some(minutes);
-        }
-        if let Some(remaining) = patch.shows_remaining {
-            settings.shows_remaining = remaining;
-        }
-        if let Some(warning) = patch.warning_at {
-            settings.warning_at = warning;
-        }
-        if let Some(shows) = patch.ring_shows {
-            settings.ring_shows = shows;
-        }
-        if let Some(letters) = patch.limit_letters {
-            settings.limit_letters = letters;
-        }
-        if let Some(visible) = patch.panel_visible {
-            settings.panel_visible = visible;
-        }
-        if let Some(checks) = patch.checks_for_updates {
-            settings.checks_for_updates = checks;
-        }
-        // Switching a provider on is the initial choice.
-        if !settings.enabled.is_empty() {
-            settings.has_chosen = true;
-        }
-        settings.normalize();
+        apply(&mut settings, patch);
         settings.save();
         (old, settings.clone())
     };
@@ -148,6 +171,12 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
         let app = app.clone();
         tauri::async_runtime::spawn(async move { updater::check(&app, false).await });
     }
+}
+
+/// Settings' "Reset all settings". Where the rail sits is not a setting.
+#[tauri::command]
+fn reset_settings(app: AppHandle) {
+    update_settings(app, SettingsPatch::defaults());
 }
 
 #[tauri::command]
@@ -204,6 +233,34 @@ fn set_autostart(app: AppHandle, enabled: bool) -> bool {
     manager.is_enabled().unwrap_or(false)
 }
 
+/// Where Settings links to. Named rather than given as a URL, so the page
+/// cannot have Pulse open anything else.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum Link {
+    Issues,
+    Source,
+    Changelog,
+    DataFolder,
+}
+
+const REPOSITORY: &str = "https://github.com/alisobirjanov/ai-status";
+
+#[tauri::command]
+fn open_link(link: Link) {
+    let target = match link {
+        Link::Issues => format!("{REPOSITORY}/issues/new"),
+        Link::Source => REPOSITORY.to_string(),
+        Link::Changelog => format!("{REPOSITORY}/blob/main/CHANGELOG.md"),
+        Link::DataFolder => {
+            let folder = paths::data_dir();
+            let _ = std::fs::create_dir_all(&folder);
+            folder.display().to_string()
+        }
+    };
+    shell_open(&target);
+}
+
 #[tauri::command]
 fn get_update(app: AppHandle) -> updater::UpdateInfo {
     updater::info(&app)
@@ -230,11 +287,34 @@ fn show_settings(app: &AppHandle) {
     }
     let _ = WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("settings.html".into()))
         .title(i18n::text("settingsTitle"))
-        .inner_size(600.0, 720.0)
-        .min_inner_size(480.0, 480.0)
+        // The page is dark whatever Windows is set to, so its title bar is
+        // too, and so is the window before the page has painted.
+        .theme(Some(tauri::Theme::Dark))
+        .background_color(tauri::window::Color(0x12, 0x11, 0x10, 0xff))
+        .inner_size(1120.0, 880.0)
+        .min_inner_size(760.0, 560.0)
+        // Smaller on a small screen rather than past its edges.
+        .prevent_overflow_with_margin(tauri::LogicalSize::new(32.0, 32.0))
         .center()
         .build();
 }
+
+/// A web page in the browser, or a folder in Explorer.
+#[cfg(windows)]
+fn shell_open(target: &str) {
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+    let wide = |text: &str| text.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (verb, file) = (wide("open"), wide(target));
+    // SAFETY: both strings are NUL-terminated and outlive the call; the
+    // other pointers may be null.
+    unsafe {
+        ShellExecuteW(std::ptr::null_mut(), verb.as_ptr(), file.as_ptr(), std::ptr::null(), std::ptr::null(), SW_SHOWNORMAL);
+    }
+}
+
+#[cfg(not(windows))]
+fn shell_open(_target: &str) {}
 
 /// The tray's left click. With nothing switched on there is no panel to
 /// show, so this is the way to the chooser instead.
@@ -291,6 +371,8 @@ pub fn run() {
             note_looked,
             panel_menu,
             open_settings,
+            reset_settings,
+            open_link,
             get_autostart,
             set_autostart,
             get_update,
@@ -362,5 +444,53 @@ fn attach_parent_console() {
         if handle.is_null() || handle == windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE {
             AttachConsole(ATTACH_PARENT_PROCESS);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_reset_keeps_the_services_and_where_the_rail_is() {
+        let mut settings = Settings {
+            enabled: vec![Provider::Codex],
+            has_chosen: true,
+            codex_source: providers::codex::Source::Tooling,
+            refresh_minutes: Some(5),
+            shows_remaining: true,
+            warning_at: 90,
+            ring_shows: RingShows::BothNested,
+            limit_letters: false,
+            panel_visible: false,
+            rail_position: Some((10, 20)),
+            login_item_decided: true,
+            checks_for_updates: false,
+            update_announced: Some("0.2.0".into()),
+        };
+        apply(&mut settings, SettingsPatch::defaults());
+
+        assert_eq!(settings.enabled, vec![Provider::Codex]);
+        assert!(settings.has_chosen);
+        assert_eq!(settings.rail_position, Some((10, 20)));
+        assert!(settings.login_item_decided);
+        assert_eq!(settings.update_announced.as_deref(), Some("0.2.0"));
+        // Everything else is as a first launch has it.
+        let rest = Settings {
+            enabled: Vec::new(),
+            has_chosen: false,
+            rail_position: None,
+            login_item_decided: false,
+            update_announced: None,
+            ..settings
+        };
+        assert_eq!(rest, Settings::default());
+    }
+
+    #[test]
+    fn the_last_service_stays_on() {
+        let mut settings = Settings { enabled: vec![Provider::ClaudeCode], has_chosen: true, ..Settings::default() };
+        apply(&mut settings, SettingsPatch { enabled: Some(Vec::new()), ..Default::default() });
+        assert_eq!(settings.enabled, vec![Provider::ClaudeCode]);
     }
 }
