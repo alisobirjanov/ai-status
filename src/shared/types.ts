@@ -71,7 +71,7 @@ export interface Settings {
   ringShows: RingShows;
   limitLetters: boolean;
   panelVisible: boolean;
-  autoCollapse: boolean;
+  tucksAway: boolean;
   showsCard: boolean;
   checksForUpdates: boolean;
 }
@@ -116,7 +116,7 @@ export interface SettingsPatch {
   ringShows?: RingShows;
   limitLetters?: boolean;
   panelVisible?: boolean;
-  autoCollapse?: boolean;
+  tucksAway?: boolean;
   showsCard?: boolean;
   checksForUpdates?: boolean;
 }

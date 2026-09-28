@@ -4,9 +4,9 @@
 // Rust decides: this window lets clicks through everywhere else, so it would
 // never hear the pointer leave.
 //
-// Docked against a side of the screen (Rust decides, `layout.dock`), the rail
-// winds down to a sliver while the pointer is elsewhere and opens as it
-// arrives — the macOS panel's `DockBerthShape`, drawn here as one SVG outline.
+// Docked against a side of the screen (Rust decides, `layout.dock`), and with
+// `tucksAway` on, the rail winds down to a sliver while the pointer is
+// elsewhere and opens as it arrives — the macOS panel's `DockBerthShape`, drawn here as one SVG outline.
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -191,7 +191,7 @@ function drawSurface() {
   surface.setAttribute("height", String(box.height));
   Object.assign(surface.style, { left: `${box.x}px`, top: `${box.y}px` });
   const docked = isDocked();
-  // Nothing past the screen edge: not the overhang, not the shadow.
+  // Nothing past the screen edge: not the overhang, nor its hairline.
   surface.style.clipPath = !docked ? "" : layout.dock === "right" ? "inset(-48px 0 -48px -48px)" : "inset(-48px -48px -48px 0)";
   const open = Math.min(Math.max(openness, 0), 1);
   outline.setAttribute("d", docked ? berth(box.width, box.height, layout.flare, open, layout.dock === "left") : capsule(box.width, box.height));
@@ -224,7 +224,7 @@ function animate() {
 
 /** Open unless docked, tucking away, and nothing is holding it. */
 function wantsOpen(): boolean {
-  if (!layout?.dock || !snapshot?.settings.autoCollapse) return true;
+  if (!layout?.dock || !snapshot?.settings.tucksAway) return true;
   return pointerInside || lingering || press != null || Date.now() < introUntil;
 }
 

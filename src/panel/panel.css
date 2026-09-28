@@ -26,11 +26,11 @@ body {
 
 /* What the rail is drawn on: a capsule floating, fused to the screen edge
    docked, a sliver tucked away. One outline, redrawn at every step as it
-   opens and closes (`main.ts`), so it reads as one thing changing size. */
+   opens and closes (`main.ts`), so it reads as one thing changing size.
+   No shadow: round the rail it read as a smudge on the desktop. */
 #surface {
   position: absolute;
   overflow: visible;
-  filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.32));
 }
 
 #surface path {

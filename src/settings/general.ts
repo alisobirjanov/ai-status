@@ -222,7 +222,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
   let shownRing: RingShows | null = null;
 
   const panelTile = toggleTile(PanelRight, t("showPanel"), t("showPanelHint"), (on) => update({ panelVisible: on }));
-  const collapseTile = toggleTile(ArrowRightToLine, t("autoCollapse"), t("autoCollapseHint"), (on) => update({ autoCollapse: on }));
+  const collapseTile = toggleTile(ArrowRightToLine, t("tucksAway"), t("tucksAwayHint"), (on) => update({ tucksAway: on }));
   const cardTile = toggleTile(SquareMousePointer, t("showsCard"), t("showsCardHint"), (on) => update({ showsCard: on }));
   const lettersTile = toggleTile(Type, t("limitLetters"), t("limitLettersHint"), (on) => update({ limitLetters: on }));
   const remainingTile = toggleTile(Hourglass, t("showsRemaining"), t("showsRemainingHint"), (on) => update({ showsRemaining: on }));
@@ -303,7 +303,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     }
 
     panelTile.switch.set(settings.panelVisible);
-    collapseTile.switch.set(settings.autoCollapse);
+    collapseTile.switch.set(settings.tucksAway);
     cardTile.switch.set(settings.showsCard);
     lettersTile.switch.set(settings.limitLetters);
     // Only a ring with both limits on it has two figures to tell apart.
@@ -343,8 +343,8 @@ export function general(update: (patch: SettingsPatch) => void): Page {
 
 /**
  * What each choice looks like, small: the 5-hour limit in the accent, the
- * weekly one in lavender. These say which limit sits where; on the rail
- * itself colour still means how close a limit is.
+ * weekly one in lavender — the colours the rail draws them in, until a limit
+ * passes the red line (`tint` in `format.ts`).
  */
 function ringGlyph(shows: RingShows): SVGSVGElement {
   const size = 40;

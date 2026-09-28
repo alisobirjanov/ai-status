@@ -39,8 +39,11 @@ pub struct Settings {
     #[serde(deserialize_with = "or_default")]
     pub rail_dock: Option<Side>,
     /// Docked, the rail winds down to a sliver against the edge while the
-    /// pointer is elsewhere. Off the edge it always stays open.
-    pub auto_collapse: bool,
+    /// pointer is elsewhere. Off — the default — a docked rail stays open,
+    /// and off the edge it always does. 0.1.2 called this `autoCollapse`
+    /// and had it on; that key is left unread, so the default reaches
+    /// everybody once.
+    pub tucks_away: bool,
     /// Hovering a ring opens its card. Off, the rail is only the rings.
     pub shows_card: bool,
     /// Launch at login is on by default and decided **once**: a reader who
@@ -68,7 +71,7 @@ impl Default for Settings {
             panel_visible: true,
             rail_position: None,
             rail_dock: None,
-            auto_collapse: true,
+            tucks_away: false,
             shows_card: true,
             login_item_decided: false,
             checks_for_updates: true,
@@ -193,12 +196,20 @@ mod tests {
         assert!(settings.panel_visible);
         // A file from before updates were checked has the check on.
         assert!(settings.checks_for_updates);
-        // One from before docking has a floating rail that tucks away once docked.
+        // One from before docking has a floating rail that stays open once docked.
         assert_eq!(settings.rail_dock, None);
-        assert!(settings.auto_collapse);
+        assert!(!settings.tucks_away);
         // And one from before the card could be switched off shows it.
         assert!(settings.shows_card);
         assert_eq!(settings.update_announced, None);
+    }
+
+    #[test]
+    fn tucking_away_from_0_1_2_is_not_carried_over() {
+        let settings: Settings = serde_json::from_str(r#"{ "hasChosen": true, "autoCollapse": true }"#).unwrap();
+        assert!(!settings.tucks_away);
+        let settings: Settings = serde_json::from_str(r#"{ "tucksAway": true }"#).unwrap();
+        assert!(settings.tucks_away);
     }
 
     #[test]

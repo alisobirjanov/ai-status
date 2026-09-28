@@ -72,7 +72,7 @@ struct SettingsPatch {
     ring_shows: Option<RingShows>,
     limit_letters: Option<bool>,
     panel_visible: Option<bool>,
-    auto_collapse: Option<bool>,
+    tucks_away: Option<bool>,
     shows_card: Option<bool>,
     checks_for_updates: Option<bool>,
 }
@@ -91,7 +91,7 @@ impl SettingsPatch {
             ring_shows: Some(defaults.ring_shows),
             limit_letters: Some(defaults.limit_letters),
             panel_visible: Some(defaults.panel_visible),
-            auto_collapse: Some(defaults.auto_collapse),
+            tucks_away: Some(defaults.tucks_away),
             shows_card: Some(defaults.shows_card),
             checks_for_updates: Some(defaults.checks_for_updates),
         }
@@ -127,8 +127,8 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
     if let Some(visible) = patch.panel_visible {
         settings.panel_visible = visible;
     }
-    if let Some(collapse) = patch.auto_collapse {
-        settings.auto_collapse = collapse;
+    if let Some(tucks) = patch.tucks_away {
+        settings.tucks_away = tucks;
     }
     if let Some(card) = patch.shows_card {
         settings.shows_card = card;
@@ -480,7 +480,7 @@ mod tests {
             panel_visible: false,
             rail_position: Some((10, 20)),
             rail_dock: Some(panel::Side::Left),
-            auto_collapse: false,
+            tucks_away: true,
             shows_card: false,
             login_item_decided: true,
             checks_for_updates: false,

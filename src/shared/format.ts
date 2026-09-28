@@ -37,18 +37,22 @@ export function isSpent(window: UsageWindow | undefined): boolean {
 }
 
 export const colours = {
-  good: "rgb(0, 230, 140)",
-  caution: "rgb(255, 194, 38)",
+  /** The 5-hour limit, and any other that is not weekly: `--accent` in settings.css. */
+  fiveHour: "#ff7a45",
+  /** `--weekly` in settings.css. */
+  weekly: "#b9a6ff",
   warning: "rgb(255, 79, 66)",
   exhausted: "rgb(217, 23, 33)",
 };
 
-/** Colour means how close this limit is to running out — nothing else. */
+/**
+ * Which limit this is — the colours the choices in Settings are drawn in —
+ * until it passes the red line; from there, red.
+ */
 export function tint(window: UsageWindow, warningAt: number): string {
   if (isSpent(window)) return colours.exhausted;
-  if (window.usedFraction < 0.5) return colours.good;
-  if (window.usedFraction < warningAt / 100) return colours.caution;
-  return colours.warning;
+  if (window.usedFraction >= warningAt / 100) return colours.warning;
+  return window.kind === "weekly" ? colours.weekly : colours.fiveHour;
 }
 
 export function windowName(window: UsageWindow): string {

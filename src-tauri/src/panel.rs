@@ -10,9 +10,10 @@
 //!
 //! **Docking.** A rail dropped within `DOCK_DISTANCE` of the left or right
 //! side of its screen fuses to it: flush against the edge, its ends sweeping
-//! into the edge above and below it (macOS `DockBerthShape`). Docked, the
-//! page winds it down to a sliver while the pointer is elsewhere and opens it
-//! the moment the pointer reaches the sliver; off the edge it stays open. The
+//! into the edge above and below it (macOS `DockBerthShape`). With "Tuck
+//! away at the edge" on, the page winds a docked rail down to a sliver while
+//! the pointer is elsewhere and opens it the moment the pointer reaches the
+//! sliver; otherwise, and always off the edge, it stays open. The
 //! window is sized for the sweep whether or not the rail is docked, so
 //! docking and undocking never move a ring.
 
