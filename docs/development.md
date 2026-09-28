@@ -53,7 +53,7 @@ What keeps the two apart:
 | Process          | `pulse.exe`                             | `Pulse Dev.exe` (`pulse.exe` for `app:dev`)  |
 | Open at login    | set on first launch                     | never set on its own                         |
 | Updates          | checks the feed, offers each version    | never — its Settings say so                  |
-| Version in About | `0.1.0`                                 | `0.1.0-dev`                                  |
+| Version in About | `0.1.1`                                 | `0.1.1-dev`                                  |
 
 The separate identifier gives Pulse Dev its own single-instance lock and
 WebView2 profile, and a separate product name its own login-item entry. The

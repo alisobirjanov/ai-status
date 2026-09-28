@@ -17,7 +17,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "category": "Utility",
     "shortDescription": "Claude Code and Codex usage on the desktop",
     "icon": [
