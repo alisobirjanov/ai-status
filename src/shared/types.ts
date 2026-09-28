@@ -54,6 +54,8 @@ export interface AccountView {
   name: string;
   enabled: boolean;
   detected: boolean;
+  /** The login it is read with, the home folder written `~`. */
+  credentials: string;
   usage: ProviderUsage;
   refreshing: boolean;
   lastCheck: Check | null;

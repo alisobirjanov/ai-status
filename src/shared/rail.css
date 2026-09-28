@@ -1,0 +1,90 @@
+/* One service on the rail (`rail.ts`): what sits inside a ring and under it.
+   The panel and the preview in Settings both draw it; where each item goes
+   is the page's own business. */
+
+.rail-face {
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --rail-text: rgba(255, 255, 255, 0.94);
+  --rail-text-secondary: rgba(255, 255, 255, 0.52);
+}
+
+.rail-face .item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Both limits. The 5-hour figure above a split ring, the weekly one below. */
+.rail-face .item.split .label:first-child {
+  margin: 0 0 6px;
+}
+
+/* Both figures under a ring in a ring. */
+.rail-face .item.nested .label + .label {
+  margin-top: 0;
+}
+
+/* Two rings, a little apart. */
+.rail-face .item.stacked .label + .ring {
+  margin-top: 8px;
+}
+
+.rail-face .ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.rail-face .ring svg.gauge {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.rail-face .ring .usage {
+  transition: stroke-dasharray 0.35s ease, stroke 0.35s ease, opacity 0.2s ease;
+}
+
+.rail-face .ring.refreshing .usage {
+  opacity: 0.45;
+}
+
+.rail-face .ring .turning {
+  transform-origin: 20px 20px;
+  animation: rail-turn 1s linear infinite;
+}
+
+@keyframes rail-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rail-face .ring .mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.rail-face .label {
+  margin-top: 6px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rail-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Which limit a figure is: there to settle the question, not to be read first. */
+.rail-face .label .letter {
+  margin-right: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--rail-text-secondary);
+}
