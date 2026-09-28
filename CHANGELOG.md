@@ -4,6 +4,24 @@ Each release needs an entry here before it is tagged: the release workflow
 refuses a tag without one, and its words are what installed copies show when
 they offer the update. Russian first, then English.
 
+## 0.1.2
+
+**Русский**
+
+- Панель прилипает к краю экрана: перетащите её к левому или правому краю, и она встанет вплотную, плавно переходя в край.
+- У края панель прячется в тонкую полоску и выезжает, когда вы подводите к ней мышь. Если лимит перешёл красную черту, полоска окрашивается в его цвет.
+- Отведите панель от края — и она снова свободная капсула, которая не прячется.
+- Уже стоящую панель один раз нужно дотащить до края, чтобы она прилипла.
+- В настройках, в «Основных», появились переключатели «Прятать у края экрана» и «Карточка при наведении». Оба включены.
+
+**English**
+
+- The panel docks to a screen edge: drag it to the left or right side and it sits flush against it, flowing into the edge.
+- Docked, it tucks away into a thin sliver and slides out when you point at it. When a limit is past the red line, the sliver takes its colour.
+- Drag it off the edge and it is a floating capsule again that never tucks away.
+- A panel already placed needs dragging to the edge once to dock.
+- Settings > General has two new switches, "Tuck away at the edge" and "Card on hover". Both are on.
+
 ## 0.1.1
 
 **Русский**
