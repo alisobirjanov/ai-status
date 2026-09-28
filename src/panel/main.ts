@@ -11,7 +11,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { colours, isSpent, percentText, reasonText, relative, resetText, shownFraction, tint, windowName } from "../shared/format";
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
-import type { AccountView, Layout, Rect, Snapshot, UsageWindow } from "../shared/types";
+import type { AccountView, Layout, Rect, RingShows, Snapshot, UsageWindow, WindowKind } from "../shared/types";
 import "./panel.css";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -19,6 +19,25 @@ const RING = 40;
 const RADIUS = 18;
 const STROKE = 4;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+/** Where on the ring a limit is drawn. */
+interface Shape {
+  radius: number;
+  stroke: number;
+  /** Where the arc begins, in degrees clockwise from three o'clock. */
+  start: number;
+  /** How far round it goes when full. */
+  span: number;
+  /** Turned upside down, so the bottom half fills from the left as the top half does. */
+  mirrored?: boolean;
+}
+
+/** Between the halves of a split ring, round caps included. */
+const SPLIT_GAP = 36;
+const WHOLE: Shape = { radius: RADIUS, stroke: STROKE, start: -90, span: 360 };
+const TOP_HALF: Shape = { radius: RADIUS, stroke: STROKE, start: 180 + SPLIT_GAP / 2, span: 180 - SPLIT_GAP };
+const BOTTOM_HALF: Shape = { ...TOP_HALF, mirrored: true };
+const INNER: Shape = { radius: 11.5, stroke: 3, start: -90, span: 360 };
 /** Leaving is not closing at once: a pointer crossing to the card must not flicker it. */
 const CLOSE_DELAY_MS = 140;
 const DRAG_THRESHOLD = 4;
@@ -44,12 +63,35 @@ function itemTop(index: number): number {
   return l.padTop + index * (l.itemHeight + l.itemSpacing);
 }
 
-/** The limit closest to biting — the one the ring shows. */
-function headline(account: AccountView): UsageWindow | undefined {
-  return account.usage.windows.reduce<UsageWindow | undefined>(
-    (fullest, window) => (!fullest || window.usedFraction > fullest.usedFraction ? window : fullest),
-    undefined,
-  );
+/** The limit closest to biting, or the fullest of one kind. */
+function fullest(account: AccountView, kind?: WindowKind): UsageWindow | undefined {
+  return account.usage.windows
+    .filter((window) => !kind || window.kind === kind)
+    .reduce<UsageWindow | undefined>(
+      (fullest, window) => (!fullest || window.usedFraction > fullest.usedFraction ? window : fullest),
+      undefined,
+    );
+}
+
+/**
+ * What the ring shows, top or outer first: the limit chosen, falling back to
+ * the fullest; or for both, the 5-hour and the weekly limit, either of which
+ * may be missing. Mirrors `RingShows::windows` in `settings.rs`.
+ */
+function shownWindows(account: AccountView, shows: RingShows): (UsageWindow | undefined)[] {
+  const headline = fullest(account);
+  switch (shows) {
+    case "fullest":
+      return [headline];
+    case "fiveHour":
+    case "weekly":
+      return [fullest(account, shows) ?? headline];
+    default: {
+      const pair = [fullest(account, "fiveHour"), fullest(account, "weekly")];
+      // Something other than either is shown on its own rather than hidden.
+      return !pair[0] && !pair[1] && headline ? [headline] : pair;
+    }
+  }
 }
 
 // MARK: - The rail
@@ -60,40 +102,41 @@ function svg<K extends keyof SVGElementTagNameMap>(tag: K, attributes: Record<st
   return element;
 }
 
-function ringItem(account: AccountView, index: number): HTMLElement {
+/** A track, or the part of it a limit has used, on a circle round the mark. */
+function arc(shape: Shape, attributes: Record<string, string | number>, fraction = 1): SVGCircleElement {
+  const circumference = 2 * Math.PI * shape.radius;
+  let transform = `rotate(${shape.start} 20 20)`;
+  if (shape.mirrored) transform = `translate(0 ${RING}) scale(1 -1) ${transform}`;
+  const circle = svg("circle", {
+    cx: 20,
+    cy: 20,
+    r: shape.radius,
+    fill: "none",
+    "stroke-width": shape.stroke,
+    "stroke-linecap": "round",
+    transform,
+    ...attributes,
+  });
+  // A whole circle has no dash, or its round caps would meet in a seam.
+  if (fraction * shape.span < 360) {
+    circle.setAttribute("stroke-dasharray", `${(circumference * shape.span * fraction) / 360} ${circumference}`);
+  }
+  return circle;
+}
+
+/** A gauge for each limit given, in its own part of the ring. */
+function ring(account: AccountView, arcs: [UsageWindow | undefined, Shape][], markSize = 16): HTMLElement {
   const settings = snapshot!.settings;
-  const window = headline(account);
-  const spent = isSpent(window);
-
-  const item = document.createElement("div");
-  item.className = "item";
-  item.style.top = `${itemTop(index)}px`;
-  item.setAttribute("role", "listitem");
-
   const ring = document.createElement("div");
   ring.className = account.refreshing ? "ring refreshing" : "ring";
 
   const gauge = svg("svg", { class: "gauge", width: RING, height: RING, viewBox: `0 0 ${RING} ${RING}` });
-  gauge.appendChild(svg("circle", { cx: 20, cy: 20, r: RADIUS, fill: "none", stroke: "rgba(255,255,255,0.14)", "stroke-width": STROKE }));
-
-  if (window) {
+  for (const [window, shape] of arcs) {
+    gauge.appendChild(arc(shape, { stroke: "rgba(255,255,255,0.14)" }));
+    if (!window) continue;
     // Spent fills the ring whichever way the figure is counted.
-    const fraction = spent ? 1 : Math.min(Math.max(shownFraction(window, settings.showsRemaining), 0), 1);
-    if (fraction > 0) {
-      const arc = svg("circle", {
-        class: "usage",
-        cx: 20,
-        cy: 20,
-        r: RADIUS,
-        fill: "none",
-        stroke: tint(window, settings.warningAt),
-        "stroke-width": STROKE,
-        "stroke-linecap": "round",
-        transform: "rotate(-90 20 20)",
-      });
-      if (fraction < 1) arc.setAttribute("stroke-dasharray", `${CIRCUMFERENCE * fraction} ${CIRCUMFERENCE}`);
-      gauge.appendChild(arc);
-    }
+    const fraction = isSpent(window) ? 1 : Math.min(Math.max(shownFraction(window, settings.showsRemaining), 0), 1);
+    if (fraction > 0) gauge.appendChild(arc(shape, { class: "usage", stroke: tint(window, settings.warningAt) }, fraction));
   }
 
   if (account.refreshing) {
@@ -115,20 +158,61 @@ function ringItem(account: AccountView, index: number): HTMLElement {
 
   const mark = document.createElement("div");
   mark.className = "mark";
-  mark.appendChild(icon(account.provider, 16));
+  mark.appendChild(icon(account.provider, markSize));
   ring.appendChild(mark);
-  item.appendChild(ring);
+  return ring;
+}
 
+/** A ring's figure, after a letter saying which limit it is when there are two. */
+function label(window: UsageWindow | undefined, letter?: string): HTMLElement {
   const label = document.createElement("div");
   label.className = "label";
-  label.textContent = window ? percentText(window, settings.showsRemaining) : "–";
-  if (spent) label.style.color = colours.exhausted;
-  item.appendChild(label);
+  label.textContent = window ? percentText(window, snapshot!.settings.showsRemaining) : "–";
+  if (letter) {
+    const tag = document.createElement("span");
+    tag.className = "letter";
+    tag.textContent = letter;
+    label.prepend(tag);
+  }
+  if (isSpent(window)) label.style.color = colours.exhausted;
+  return label;
+}
 
-  item.setAttribute(
-    "aria-label",
-    window ? `${account.name}: ${percentText(window, settings.showsRemaining)}` : account.name,
-  );
+function ringItem(account: AccountView, index: number): HTMLElement {
+  const settings = snapshot!.settings;
+  const shown = shownWindows(account, settings.ringShows);
+
+  const item = document.createElement("div");
+  item.className = "item";
+  item.style.top = `${itemTop(index)}px`;
+  item.style.height = `${layout!.itemHeight}px`;
+  item.setAttribute("role", "listitem");
+
+  const [first, second] = shown;
+  if (shown.length === 1) {
+    item.append(ring(account, [[first, WHOLE]]), label(first));
+    item.setAttribute("aria-label", first ? `${account.name}: ${percentText(first, settings.showsRemaining)}` : account.name);
+    return item;
+  }
+
+  const [firstLabel, secondLabel] = settings.limitLetters
+    ? [label(first, t("fiveHourLetter")), label(second, t("weeklyLetter"))]
+    : [label(first), label(second)];
+  switch (settings.ringShows) {
+    case "bothSplit":
+      item.classList.add("split");
+      item.append(firstLabel, ring(account, [[first, TOP_HALF], [second, BOTTOM_HALF]]), secondLabel);
+      break;
+    case "bothNested":
+      item.classList.add("nested");
+      item.append(ring(account, [[first, WHOLE], [second, INNER]], 14), firstLabel, secondLabel);
+      break;
+    default:
+      item.classList.add("stacked");
+      item.append(ring(account, [[first, WHOLE]]), firstLabel, ring(account, [[second, WHOLE]]), secondLabel);
+  }
+  const figures = shown.filter((window) => window).map((window) => `${windowName(window!)} ${percentText(window!, settings.showsRemaining)}`);
+  item.setAttribute("aria-label", [account.name, ...figures].join(", "));
   return item;
 }
 
@@ -254,6 +338,13 @@ function tailFor(side: Layout["side"]): SVGSVGElement {
   return tail;
 }
 
+/** Where the card's pointer aims: the middle of that service's ring, or of its two. */
+function ringMiddle(index: number): number {
+  const rings = rail.children[index]?.querySelectorAll(".ring");
+  if (!rings?.length) return layout!.rail.y + itemTop(index) + RING / 2;
+  return (rings[0].getBoundingClientRect().top + rings[rings.length - 1].getBoundingClientRect().bottom) / 2;
+}
+
 function renderCard() {
   const account = hovered == null ? undefined : railAccounts()[hovered];
   if (!account || !layout || press?.dragging) {
@@ -275,7 +366,7 @@ function renderCard() {
   const tailLeft = l.side === "right" ? bodyLeft + l.cardWidth : bodyLeft - l.pointerWidth;
 
   const height = body.offsetHeight;
-  const ringCenter = l.rail.y + itemTop(hovered!) + RING / 2;
+  const ringCenter = ringMiddle(hovered!);
   const windowHeight = document.documentElement.clientHeight;
   // Centred on the ring, pushed back inside whatever part of the window is
   // on screen.

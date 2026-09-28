@@ -40,6 +40,22 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+}
+
+/* Both limits. The 5-hour figure above a split ring, the weekly one below. */
+.item.split .label:first-child {
+  margin: 0 0 6px;
+}
+
+/* Both figures under a ring in a ring. */
+.item.nested .label + .label {
+  margin-top: 0;
+}
+
+/* Two rings, a little apart. */
+.item.stacked .label + .ring {
+  margin-top: 8px;
 }
 
 .ring {
@@ -91,6 +107,14 @@ body {
   color: var(--text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Which limit a figure is: there to settle the question, not to be read first. */
+.label .letter {
+  margin-right: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 /* The card: a body and a pointer aimed at the ring, one shadow for both. */

@@ -15,6 +15,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
+use crate::settings::{RingShows, Settings};
 use crate::store::AppState;
 
 pub const LABEL: &str = "panel";
@@ -27,6 +28,10 @@ const RAIL_PAD_TOP: f64 = 16.0;
 const RAIL_PAD_BOTTOM: f64 = 14.0;
 /// Ring (36 + a 4px stroke), a 6px gap, a 16px label.
 const ITEM_HEIGHT: f64 = 62.0;
+const LABEL_HEIGHT: f64 = 16.0;
+const LABEL_GAP: f64 = 6.0;
+/// Between a service's two rings, when both limits are stacked.
+const PAIR_GAP: f64 = 8.0;
 const ITEM_SPACING: f64 = 22.0;
 const GAP: f64 = 8.0;
 const CARD_WIDTH: f64 = 250.0;
@@ -86,8 +91,8 @@ pub struct PanelState {
     shown: AtomicBool,
     move_generation: AtomicU64,
     layout: Mutex<Option<Layout>>,
-    /// How many rings the window was last sized for.
-    sized_for: Mutex<Option<usize>>,
+    /// What the window was last sized for.
+    sized_for: Mutex<Option<Items>>,
 }
 
 impl PanelState {
@@ -104,21 +109,42 @@ impl PanelState {
     }
 }
 
-fn rail_height(count: usize) -> f64 {
-    let n = count.max(1) as f64;
-    RAIL_PAD_TOP + RAIL_PAD_BOTTOM + n * ITEM_HEIGHT + (n - 1.0) * ITEM_SPACING
+/// What the rail holds: how many services, and how tall each one's item is.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Items {
+    count: usize,
+    height: f64,
 }
 
-fn window_size(count: usize) -> (f64, f64) {
+impl Items {
+    fn of(settings: &Settings) -> Items {
+        let height = match settings.ring_shows {
+            RingShows::Fullest | RingShows::FiveHour | RingShows::Weekly => ITEM_HEIGHT,
+            // The 5-hour figure above the ring, the weekly one below it.
+            RingShows::BothSplit => ITEM_HEIGHT + LABEL_GAP + LABEL_HEIGHT,
+            // Both figures under the ring, one on top of the other.
+            RingShows::BothNested => ITEM_HEIGHT + LABEL_HEIGHT,
+            RingShows::BothStacked => 2.0 * ITEM_HEIGHT + PAIR_GAP,
+        };
+        Items { count: settings.enabled.len(), height }
+    }
+}
+
+fn rail_height(items: Items) -> f64 {
+    let n = items.count.max(1) as f64;
+    RAIL_PAD_TOP + RAIL_PAD_BOTTOM + n * items.height + (n - 1.0) * ITEM_SPACING
+}
+
+fn window_size(items: Items) -> (f64, f64) {
     let width = MARGIN * 2.0 + RAIL_WIDTH + GAP + POINTER_WIDTH + CARD_WIDTH;
-    let height = rail_height(count).max(CARD_MAX_HEIGHT) + MARGIN * 2.0;
+    let height = rail_height(items).max(CARD_MAX_HEIGHT) + MARGIN * 2.0;
     (width, height)
 }
 
 /// Where the rail sits inside the window, logical pixels.
-fn rail_rect(count: usize, side: Side) -> Rect {
-    let (width, height) = window_size(count);
-    let rail_h = rail_height(count);
+fn rail_rect(items: Items, side: Side) -> Rect {
+    let (width, height) = window_size(items);
+    let rail_h = rail_height(items);
     Rect {
         x: match side {
             Side::Left => MARGIN,
@@ -134,6 +160,7 @@ fn rail_rect(count: usize, side: Side) -> Rect {
 pub fn sync(app: &AppHandle) {
     let settings = app.state::<AppState>().settings.lock().unwrap().clone();
     let wanted = settings.has_chosen && !settings.enabled.is_empty() && settings.panel_visible;
+    let items = Items::of(&settings);
     let panel = app.state::<PanelState>();
 
     if !wanted {
@@ -147,20 +174,20 @@ pub fn sync(app: &AppHandle) {
 
     let window = match app.get_webview_window(LABEL) {
         Some(window) => window,
-        None => match create(app, settings.enabled.len()) {
+        None => match create(app, items) {
             Some(window) => window,
             None => return,
         },
     };
 
-    place(app, &window, settings.enabled.len(), settings.rail_position);
+    place(app, &window, items, settings.rail_position);
     let _ = window.show();
     panel.shown.store(true, Ordering::SeqCst);
     crate::tray::set_panel_checked(app, true);
 }
 
-fn create(app: &AppHandle, count: usize) -> Option<WebviewWindow> {
-    let (width, height) = window_size(count);
+fn create(app: &AppHandle, items: Items) -> Option<WebviewWindow> {
+    let (width, height) = window_size(items);
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
         .title("Pulse")
         .inner_size(width, height)
@@ -207,10 +234,10 @@ fn create(app: &AppHandle, count: usize) -> Option<WebviewWindow> {
     Some(window)
 }
 
-/// Size the window for `count` rings and put the rail where it was left, or
+/// Size the window for `items` and put the rail where it was left, or
 /// against the right edge of the main screen the first time.
-fn place(app: &AppHandle, window: &WebviewWindow, count: usize, rail_position: Option<(i32, i32)>) {
-    let rail_h = rail_height(count);
+fn place(app: &AppHandle, window: &WebviewWindow, items: Items, rail_position: Option<(i32, i32)>) {
+    let rail_h = rail_height(items);
     let (rail_x, rail_y, scale) = match rail_position.and_then(|(x, y)| {
         let monitor = window.monitor_from_point(x as f64, y as f64).ok().flatten()?;
         Some((x, y, monitor.scale_factor()))
@@ -226,14 +253,14 @@ fn place(app: &AppHandle, window: &WebviewWindow, count: usize, rail_position: O
         }
     };
 
-    let side = side_for(window, rail_x, rail_y, count, scale);
-    position_for_rail(app, window, count, side, (rail_x, rail_y), scale);
+    let side = side_for(window, rail_x, rail_y, items, scale);
+    position_for_rail(app, window, items, side, (rail_x, rail_y), scale);
 }
 
 /// The card opens towards the middle of the screen the rail is on.
-fn side_for(window: &WebviewWindow, rail_x: i32, rail_y: i32, count: usize, scale: f64) -> Side {
+fn side_for(window: &WebviewWindow, rail_x: i32, rail_y: i32, items: Items, scale: f64) -> Side {
     let center_x = rail_x as f64 + RAIL_WIDTH * scale / 2.0;
-    let center_y = rail_y as f64 + rail_height(count) * scale / 2.0;
+    let center_y = rail_y as f64 + rail_height(items) * scale / 2.0;
     match window.monitor_from_point(center_x, center_y).ok().flatten() {
         Some(monitor) => {
             let middle = monitor.position().x as f64 + monitor.size().width as f64 / 2.0;
@@ -245,9 +272,9 @@ fn side_for(window: &WebviewWindow, rail_x: i32, rail_y: i32, count: usize, scal
 
 /// Move and size the window so the rail lands at `rail` (physical), clamped
 /// into the work area of the screen it is on, then tell the page.
-fn position_for_rail(app: &AppHandle, window: &WebviewWindow, count: usize, side: Side, rail: (i32, i32), scale: f64) {
-    let (width, height) = window_size(count);
-    let inside = rail_rect(count, side);
+fn position_for_rail(app: &AppHandle, window: &WebviewWindow, items: Items, side: Side, rail: (i32, i32), scale: f64) {
+    let (width, height) = window_size(items);
+    let inside = rail_rect(items, side);
 
     let (mut rail_x, mut rail_y) = rail;
     let rail_w = (RAIL_WIDTH * scale) as i32;
@@ -282,8 +309,8 @@ fn position_for_rail(app: &AppHandle, window: &WebviewWindow, count: usize, side
     }
     let resized = {
         let mut sized = panel.sized_for.lock().unwrap();
-        let resized = *sized != Some(count);
-        *sized = Some(count);
+        let resized = *sized != Some(items);
+        *sized = Some(items);
         resized
     };
     if resized {
@@ -298,12 +325,12 @@ fn position_for_rail(app: &AppHandle, window: &WebviewWindow, count: usize, side
             settings.save();
         }
     }
-    publish_layout(app, window, count, side, (origin_x, origin_y), scale);
+    publish_layout(app, window, items, side, (origin_x, origin_y), scale);
 }
 
-fn publish_layout(app: &AppHandle, window: &WebviewWindow, count: usize, side: Side, origin: (i32, i32), scale: f64) {
-    let (width, height) = window_size(count);
-    let rail = rail_rect(count, side);
+fn publish_layout(app: &AppHandle, window: &WebviewWindow, items: Items, side: Side, origin: (i32, i32), scale: f64) {
+    let (width, height) = window_size(items);
+    let rail = rail_rect(items, side);
 
     // The window's on-screen part, in its own logical coordinates.
     let mut visible = Rect { x: 0.0, y: 0.0, width, height };
@@ -321,7 +348,7 @@ fn publish_layout(app: &AppHandle, window: &WebviewWindow, count: usize, side: S
         side,
         rail,
         pad_top: RAIL_PAD_TOP,
-        item_height: ITEM_HEIGHT,
+        item_height: items.height,
         item_spacing: ITEM_SPACING,
         gap: GAP,
         card_width: CARD_WIDTH,
@@ -344,18 +371,18 @@ pub fn current_layout(app: &AppHandle) -> Option<Layout> {
 /// of whichever screen it is now on, and remember where it was left.
 fn settle(app: &AppHandle) {
     let Some(window) = app.get_webview_window(LABEL) else { return };
-    let count = app.state::<AppState>().settings.lock().unwrap().enabled.len();
+    let items = Items::of(&app.state::<AppState>().settings.lock().unwrap());
     let Ok(origin) = window.outer_position() else { return };
     let scale = window.scale_factor().unwrap_or(1.0);
     let side = *app.state::<PanelState>().side.lock().unwrap();
-    let inside = rail_rect(count, side);
+    let inside = rail_rect(items, side);
 
     let rail = (
         origin.x + (inside.x * scale).round() as i32,
         origin.y + (inside.y * scale).round() as i32,
     );
-    let new_side = side_for(&window, rail.0, rail.1, count, scale);
-    position_for_rail(app, &window, count, new_side, rail, scale);
+    let new_side = side_for(&window, rail.0, rail.1, items, scale);
+    position_for_rail(app, &window, items, new_side, rail, scale);
 }
 
 pub fn set_hit_rects(app: &AppHandle, rects: Vec<Rect>) {
