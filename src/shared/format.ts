@@ -97,10 +97,10 @@ export function resetText(window: UsageWindow): string {
   return t("resets", new Intl.DateTimeFormat(locale, options).format(date));
 }
 
-/** "5 minutes ago", "yesterday". */
-export function relative(ms: number): string {
+/** "5 minutes ago", "yesterday" — or "5 min. ago", short. */
+export function relative(ms: number, style: Intl.RelativeTimeFormatStyle = "long"): string {
   const seconds = Math.round((ms - Date.now()) / 1000);
-  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style });
   const abs = Math.abs(seconds);
   if (abs < 45) return format.format(0, "second");
   if (abs < 3600) return format.format(Math.round(seconds / 60), "minute");

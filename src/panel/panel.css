@@ -1,5 +1,5 @@
 /* The floating panel. Sizes are the budgets `panel.rs` sends in `Layout`;
-   what is fixed here is only what sits inside a ring or a card. */
+   what is fixed here is only what sits inside a card. */
 
 :root {
   color-scheme: dark;
@@ -33,88 +33,11 @@ body {
     0 8px 22px rgba(0, 0, 0, 0.32);
 }
 
-.item {
+/* Each service's place on it. What is inside one is `src/shared/rail.css`. */
+#rail .item {
   position: absolute;
   left: 0;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Both limits. The 5-hour figure above a split ring, the weekly one below. */
-.item.split .label:first-child {
-  margin: 0 0 6px;
-}
-
-/* Both figures under a ring in a ring. */
-.item.nested .label + .label {
-  margin-top: 0;
-}
-
-/* Two rings, a little apart. */
-.item.stacked .label + .ring {
-  margin-top: 8px;
-}
-
-.ring {
-  position: relative;
-  width: 40px;
-  height: 40px;
-}
-
-.ring svg.gauge {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-}
-
-.ring .usage {
-  transition: stroke-dasharray 0.35s ease, stroke 0.35s ease, opacity 0.2s ease;
-}
-
-.ring.refreshing .usage {
-  opacity: 0.45;
-}
-
-.ring .turning {
-  transform-origin: 20px 20px;
-  animation: turn 1s linear infinite;
-}
-
-@keyframes turn {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.ring .mark {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-}
-
-.label {
-  margin-top: 6px;
-  height: 16px;
-  line-height: 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* Which limit a figure is: there to settle the question, not to be read first. */
-.label .letter {
-  margin-right: 3px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
 }
 
 /* The card: a body and a pointer aimed at the ring, one shadow for both. */
