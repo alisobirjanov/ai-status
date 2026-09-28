@@ -4,6 +4,20 @@ Each release needs an entry here before it is tagged: the release workflow
 refuses a tag without one, and its words are what installed copies show when
 they offer the update. Russian first, then English.
 
+## 0.1.3
+
+**Русский**
+
+- Цвета колец — как в выборе «Кольца показывают» в настройках: 5-часовой лимит оранжевый, недельный — фиолетовый. Когда лимит переходит порог «Красный цвет с», кольцо краснеет.
+- Прилипшая к краю панель больше не прячется сама: она всегда открыта. Сворачивание в полоску с выездом при наведении включается в настройках — «Прятать у края экрана».
+- У панели больше нет тени: вокруг колец не остаётся тёмного ореола.
+
+**English**
+
+- Rings take the colours of the "Rings show" choices in Settings: the 5-hour limit orange, the weekly one violet. A limit past "Turn red from" turns its ring red.
+- A panel docked at an edge no longer tucks itself away: it stays open. Shrinking to a sliver that slides out on hover is a switch in Settings, "Tuck away at the edge".
+- The panel no longer casts a shadow, so no dark halo is left round the rings.
+
 ## 0.1.2
 
 **Русский**
