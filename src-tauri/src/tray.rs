@@ -52,23 +52,34 @@ pub fn set_panel_checked(app: &AppHandle, checked: bool) {
 }
 
 /// "Claude Code 6% · Codex 89%", so a glance at the tray answers the
-/// question even with the panel hidden.
+/// question even with the panel hidden. The figures are the rings': with
+/// both limits on them, "Claude Code h 6% / w 31%", lettered as the rings are.
 pub fn update_tooltip(app: &AppHandle, snapshot: &Snapshot) {
     let Some(tray) = app.tray_by_id(TRAY_ID) else { return };
+    let settings = &snapshot.settings;
     let figures: Vec<String> = snapshot
         .accounts
         .iter()
         .filter(|a| a.enabled)
         .map(|account| {
             let usage = &account.usage;
-            let figure = match (usage.headline(), usage.state) {
-                (Some(window), State::Live | State::Stale) => {
-                    let fraction = if snapshot.settings.shows_remaining { 1.0 - window.used_fraction } else { window.used_fraction };
-                    format!("{}%", percent_value(fraction))
-                }
-                _ => "–".to_string(),
-            };
-            format!("{} {}", account.name, figure)
+            let windows = settings.ring_shows.windows(usage);
+            let lettered = settings.limit_letters && windows.len() == 2;
+            let figure: Vec<String> = windows
+                .into_iter()
+                .zip(["fiveHourLetter", "weeklyLetter"])
+                .map(|(window, letter)| {
+                    let figure = match (window, usage.state) {
+                        (Some(window), State::Live | State::Stale) => {
+                            let fraction = if settings.shows_remaining { 1.0 - window.used_fraction } else { window.used_fraction };
+                            format!("{}%", percent_value(fraction))
+                        }
+                        _ => "–".to_string(),
+                    };
+                    if lettered { format!("{} {figure}", text(letter)) } else { figure }
+                })
+                .collect();
+            format!("{} {}", account.name, figure.join(" / "))
         })
         .collect();
     let name = crate::APP_NAME;

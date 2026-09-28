@@ -8,7 +8,7 @@ import { listen } from "@tauri-apps/api/event";
 import { reasonText, relative } from "../shared/format";
 import { t, type StringKey } from "../shared/i18n";
 import { icon } from "../shared/icons";
-import type { AccountView, CodexSource, Provider, SettingsPatch, Snapshot } from "../shared/types";
+import type { AccountView, CodexSource, Provider, RingShows, SettingsPatch, Snapshot } from "../shared/types";
 import "./settings.css";
 
 const PROVIDERS: Provider[] = ["claudeCode", "codex"];
@@ -172,6 +172,20 @@ function updateServices(snap: Snapshot) {
 // MARK: - Panel, refresh, general
 
 const panelSwitch = switchInput(t("showPanel"));
+const ringSelect = select<RingShows>(
+  t("ringShows"),
+  [
+    ["fullest", t("ringFullest")],
+    ["fiveHour", t("fiveHour")],
+    ["weekly", t("weekly")],
+    ["bothSplit", t("ringBothSplit")],
+    ["bothStacked", t("ringBothStacked")],
+    ["bothNested", t("ringBothNested")],
+  ],
+  (value) => update({ ringShows: value }),
+);
+const lettersSwitch = switchInput(t("limitLetters"));
+const lettersLine = settingLine(t("limitLetters"), lettersSwitch, t("limitLettersHint"));
 const remainingSwitch = switchInput(t("showsRemaining"));
 const warningSelect = select<number>(
   t("warningAt"),
@@ -211,11 +225,14 @@ function build(snap: Snapshot) {
   }
 
   panelSwitch.addEventListener("change", () => update({ panelVisible: panelSwitch.checked }));
+  lettersSwitch.addEventListener("change", () => update({ limitLetters: lettersSwitch.checked }));
   remainingSwitch.addEventListener("change", () => update({ showsRemaining: remainingSwitch.checked }));
   document
     .getElementById("panel-group")!
     .append(
       settingLine(t("showPanel"), panelSwitch, t("showPanelHint")),
+      settingLine(t("ringShows"), ringSelect, t("ringShowsHint")),
+      lettersLine,
       settingLine(t("showsRemaining"), remainingSwitch, t("showsRemainingHint")),
       settingLine(t("warningAt"), warningSelect),
     );
@@ -246,6 +263,10 @@ function apply(snap: Snapshot) {
   updateServices(snap);
   panelSwitch.checked = settings.panelVisible;
   remainingSwitch.checked = settings.showsRemaining;
+  if (document.activeElement !== ringSelect) ringSelect.value = settings.ringShows;
+  lettersSwitch.checked = settings.limitLetters;
+  // Only a ring with both limits on it has two figures to tell apart.
+  lettersLine.hidden = !settings.ringShows.startsWith("both");
   if (document.activeElement !== warningSelect) warningSelect.value = String(settings.warningAt);
   if (document.activeElement !== intervalSelect) intervalSelect.value = String(settings.refreshMinutes ?? 0);
 }

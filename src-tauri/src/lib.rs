@@ -25,7 +25,7 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 use model::Provider;
 use panel::{Layout, PanelState, Rect};
-use settings::Settings;
+use settings::{RingShows, Settings};
 use store::{AppState, Snapshot, Store};
 
 const SETTINGS_LABEL: &str = "settings";
@@ -68,6 +68,8 @@ struct SettingsPatch {
     refresh_minutes: Option<u32>,
     shows_remaining: Option<bool>,
     warning_at: Option<u32>,
+    ring_shows: Option<RingShows>,
+    limit_letters: Option<bool>,
     panel_visible: Option<bool>,
 }
 
@@ -96,6 +98,12 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
         if let Some(warning) = patch.warning_at {
             settings.warning_at = warning;
         }
+        if let Some(shows) = patch.ring_shows {
+            settings.ring_shows = shows;
+        }
+        if let Some(letters) = patch.limit_letters {
+            settings.limit_letters = letters;
+        }
         if let Some(visible) = patch.panel_visible {
             settings.panel_visible = visible;
         }
@@ -114,7 +122,12 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
     if new.codex_source != old.codex_source && new.is_enabled(Provider::Codex) && !ask.contains(&Provider::Codex) {
         ask.push(Provider::Codex);
     }
-    if new.enabled != old.enabled || new.panel_visible != old.panel_visible || new.has_chosen != old.has_chosen {
+    // What the rings show sets how tall the rail is.
+    if new.enabled != old.enabled
+        || new.panel_visible != old.panel_visible
+        || new.has_chosen != old.has_chosen
+        || new.ring_shows != old.ring_shows
+    {
         panel::sync(&app);
     }
     if new.panel_visible && !old.panel_visible {

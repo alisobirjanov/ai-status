@@ -26,6 +26,9 @@ pub fn text(key: &str) -> &'static str {
         "settings" => if russian { "Настройки…" } else { "Settings…" },
         "quit" => if russian { "Выйти из Pulse" } else { "Quit Pulse" },
         "settingsTitle" => if russian { "Настройки Pulse" } else { "Pulse Settings" },
+        // Beside a ring's two figures: the 5-hour limit and the weekly one.
+        "fiveHourLetter" => if russian { "ч" } else { "h" },
+        "weeklyLetter" => if russian { "н" } else { "w" },
         _ => "",
     }
 }

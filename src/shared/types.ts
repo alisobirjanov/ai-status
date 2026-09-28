@@ -6,6 +6,7 @@ export type WindowKind = "fiveHour" | "weekly" | "spend" | "other";
 export type UsageState = "live" | "stale" | "unavailable";
 export type Route = "endpoint" | "appServer";
 export type CodexSource = "automatic" | "endpoint" | "tooling";
+export type RingShows = "fullest" | "fiveHour" | "weekly" | "bothSplit" | "bothStacked" | "bothNested";
 
 export type Reason =
   | "notChecked"
@@ -65,6 +66,8 @@ export interface Settings {
   refreshMinutes: number | null;
   showsRemaining: boolean;
   warningAt: number;
+  ringShows: RingShows;
+  limitLetters: boolean;
   panelVisible: boolean;
 }
 
@@ -101,5 +104,7 @@ export interface SettingsPatch {
   refreshMinutes?: number;
   showsRemaining?: boolean;
   warningAt?: number;
+  ringShows?: RingShows;
+  limitLetters?: boolean;
   panelVisible?: boolean;
 }

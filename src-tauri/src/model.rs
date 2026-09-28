@@ -191,12 +191,20 @@ impl ProviderUsage {
         Some(copy)
     }
 
-    /// The window the ring shows: the one closest to its limit.
+    /// The window closest to its limit: what the ring shows unless Settings
+    /// asks for a particular one, and `--json`'s headline.
     pub fn headline(&self) -> Option<&UsageWindow> {
-        self.windows
-            .iter()
-            .max_by(|a, b| a.used_fraction.total_cmp(&b.used_fraction))
+        fullest(self.windows.iter())
     }
+
+    /// The fullest window of one kind, per-model ones included.
+    pub fn fullest_of(&self, kind: WindowKind) -> Option<&UsageWindow> {
+        fullest(self.windows.iter().filter(|w| w.kind == kind))
+    }
+}
+
+fn fullest<'a>(windows: impl Iterator<Item = &'a UsageWindow>) -> Option<&'a UsageWindow> {
+    windows.max_by(|a, b| a.used_fraction.total_cmp(&b.used_fraction))
 }
 
 /// A fraction as a whole percentage that never rounds away the fact that
