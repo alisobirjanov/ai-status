@@ -29,6 +29,14 @@ pub fn text(key: &str) -> &'static str {
         // Beside a ring's two figures: the 5-hour limit and the weekly one.
         "fiveHourLetter" => if russian { "ч" } else { "h" },
         "weeklyLetter" => if russian { "н" } else { "w" },
+        // A new version of Pulse. `{0}` is the version.
+        "installUpdate" => if russian { "Установить обновление {0}…" } else { "Install Update {0}…" },
+        "updateTitle" => if russian { "Вышла версия Pulse {0}" } else { "Pulse {0} is available" },
+        "updateBody" => if russian {
+            "Установить её можно из меню в трее или в настройках Pulse."
+        } else {
+            "Install it from the tray menu or from Pulse Settings."
+        },
         _ => "",
     }
 }

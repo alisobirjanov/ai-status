@@ -1,0 +1,168 @@
+name: Release
+
+# Tag and push, and that is the whole publishing step:
+#
+#   npm run release:version 0.2.0    # then write CHANGELOG.md's entry and commit
+#   git tag v0.2.0 && git push origin v0.2.0
+#
+# Installed copies ask this repository's latest release for latest.json, so
+# what this publishes is exactly what they are offered. See docs/releasing.md.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing v* tag to build and publish"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      # Warnings are failures.
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Version from the tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          case "$TAG" in
+            v*) ;;
+            *) echo "::error::$TAG is not a v* tag."; exit 1 ;;
+          esac
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      # Before anything is built. The installer and the updater read the
+      # version from tauri.conf.json; a tag that disagrees would offer every
+      # installed copy the version it already has, for ever. And the
+      # changelog entry is what those copies show when they offer it.
+      - name: Tag, version and changelog agree
+        run: node scripts/release.mjs check "$VERSION"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install
+        run: npm ci
+
+      # The pages first: the Rust build embeds `dist`, and will not compile
+      # without it.
+      - name: Pages
+        run: npm run build
+
+      # A tag publishes to everyone who has Pulse installed; the tests are the
+      # last thing between a regression in the rules and that.
+      - name: Tests
+        run: npm test
+
+      # The signature is the whole trust story: an installed Pulse runs an
+      # update only if it verifies against the public key built into it.
+      - name: Build and sign
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set — installed copies would refuse this update."
+            exit 1
+          fi
+          npx tauri build
+
+          BUILT="src-tauri/target/release/bundle/nsis/Pulse_${VERSION}_x64-setup.exe"
+          for FILE in "$BUILT" "$BUILT.sig"; do
+            if [ ! -s "$FILE" ]; then
+              echo "::error::$FILE was not built."
+              ls -la src-tauri/target/release/bundle/nsis || true
+              exit 1
+            fi
+          done
+
+          INSTALLER="Pulse-${VERSION}-x64-setup.exe"
+          OUT="$RUNNER_TEMP/release"
+          mkdir -p "$OUT"
+          cp "$BUILT" "$OUT/$INSTALLER"
+          cp "$BUILT.sig" "$OUT/$INSTALLER.sig"
+          echo "INSTALLER=$INSTALLER" >> "$GITHUB_ENV"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - name: Feed
+        run: |
+          node scripts/release.mjs notes "$VERSION" > "$OUT/notes.md"
+          node scripts/release.mjs feed \
+            --version "$VERSION" \
+            --url "https://github.com/${{ github.repository }}/releases/download/$TAG/$INSTALLER" \
+            --signature "$OUT/$INSTALLER.sig" \
+            --notes "$OUT/notes.md" \
+            --out "$OUT/latest.json"
+          ls -la "$OUT"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ASSETS=("$OUT/$INSTALLER" "$OUT/$INSTALLER.sig" "$OUT/latest.json")
+
+          # Re-runnable: a failure after this point replaces the assets rather
+          # than needing the release deleted by hand.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release exists — replacing its assets."
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            exit 0
+          fi
+
+          # A draft until every asset is there: the moment it is published it
+          # is the latest release, and installed copies ask for its
+          # latest.json straight away.
+          gh release create "$TAG" "${ASSETS[@]}" \
+            --title "Pulse $VERSION" \
+            --notes-file "$OUT/notes.md" \
+            --draft
+
+          # A tag like v0.2.0-beta.1 is a pre-release. GitHub never makes one
+          # the latest release, so installed copies are not offered it: only
+          # people who download it get it.
+          case "$VERSION" in
+            *-*) gh release edit "$TAG" --draft=false --prerelease ;;
+            *) gh release edit "$TAG" --draft=false --latest ;;
+          esac
+
+      - name: The feed answers
+        if: ${{ !contains(env.VERSION, '-') }}
+        run: |
+          # What an installed copy will actually see, asked the way it asks.
+          FEED="https://github.com/${{ github.repository }}/releases/latest/download/latest.json"
+          for ATTEMPT in 1 2 3 4 5 6; do
+            if curl -fsSL "$FEED" | grep -q "\"version\": \"$VERSION\""; then
+              echo "The feed offers $VERSION."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$FEED does not offer $VERSION — installed copies would not see it."
+          exit 1

@@ -1,0 +1,48 @@
+name: Build
+
+# Every push to main and every pull request: the pages build, the Rust tests
+# pass, and neither leaves a warning. Releases build the installer too; see
+# release.yml.
+on:
+  push:
+    branches: [main]
+    paths-ignore: &prose
+      - "**/*.md"
+      - "LICENSE"
+  pull_request:
+    paths-ignore: *prose
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    env:
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      # The Rust build embeds `dist`, so the pages come first.
+      - name: Pages
+        run: npm run build
+
+      - name: Tests
+        run: npm test

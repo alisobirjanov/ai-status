@@ -69,6 +69,7 @@ export interface Settings {
   ringShows: RingShows;
   limitLetters: boolean;
   panelVisible: boolean;
+  checksForUpdates: boolean;
 }
 
 export interface Snapshot {
@@ -107,4 +108,26 @@ export interface SettingsPatch {
   ringShows?: RingShows;
   limitLetters?: boolean;
   panelVisible?: boolean;
+  checksForUpdates?: boolean;
+}
+
+/** A new version of Pulse itself (`src-tauri/src/updater.rs`). */
+export type UpdateStatus =
+  | "idle"
+  | "checking"
+  | "upToDate"
+  | "available"
+  | "downloading"
+  | "installing"
+  | "failed"
+  | "unsupported";
+
+export interface UpdateInfo {
+  status: UpdateStatus;
+  current: string;
+  version: string | null;
+  notes: string | null;
+  progress: number | null;
+  checkedAt: number | null;
+  error: string | null;
 }

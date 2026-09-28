@@ -36,6 +36,12 @@ pub struct Settings {
     /// Launch at login is on by default and decided **once**: a reader who
     /// turned it off is never turned back on by a later launch.
     pub login_item_decided: bool,
+    /// Ask the feed for a new Pulse every few hours. Installing is always
+    /// the reader's call; this is only whether to look.
+    pub checks_for_updates: bool,
+    /// The version whose arrival has been announced, so a new version makes
+    /// one notification rather than one per check or per launch.
+    pub update_announced: Option<String>,
 }
 
 impl Default for Settings {
@@ -52,6 +58,8 @@ impl Default for Settings {
             panel_visible: true,
             rail_position: None,
             login_item_decided: false,
+            checks_for_updates: true,
+            update_announced: None,
         }
     }
 }
@@ -170,6 +178,9 @@ mod tests {
         assert!(settings.has_chosen);
         assert_eq!(settings.warning_at, 75);
         assert!(settings.panel_visible);
+        // A file from before updates were checked has the check on.
+        assert!(settings.checks_for_updates);
+        assert_eq!(settings.update_announced, None);
     }
 
     #[test]

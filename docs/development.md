@@ -52,6 +52,7 @@ What keeps the two apart:
 | Identifier       | `io.github.qunqin24.PulseWindows`       | `io.github.qunqin24.PulseWindows.dev`        |
 | Process          | `pulse.exe`                             | `Pulse Dev.exe` (`pulse.exe` for `app:dev`)  |
 | Open at login    | set on first launch                     | never set on its own                         |
+| Updates          | checks the feed, offers each version    | never — its Settings say so                  |
 | Version in About | `0.1.0`                                 | `0.1.0-dev`                                  |
 
 The separate identifier gives Pulse Dev its own single-instance lock and
@@ -74,7 +75,9 @@ Remove-Item -Recurse "$env:APPDATA\Pulse Dev"  # start again from the chooser (q
 ### What not to run on a PC with Pulse installed
 
 - **`npm run tauri build`** without the dev config: its installer is the real
-  Pulse, and running it replaces the installed one.
+  Pulse, and running it replaces the installed one. It also needs the
+  updater's signing key, which only releases use — see
+  [releasing.md](releasing.md).
 - **`npm run tauri dev`** without the dev config: it has the installed app's
   identifier, so it hands over to the running Pulse and exits.
 - **`taskkill /IM pulse.exe`**: that is the installed Pulse. Use

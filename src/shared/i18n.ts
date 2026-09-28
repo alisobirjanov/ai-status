@@ -76,6 +76,22 @@ const english = {
   general: "General",
   launchAtLogin: "Open at login",
   about: "Pulse {0} for Windows. No Pulse account and no Pulse server: each figure comes from the service's own endpoint.",
+  // Updates
+  updates: "Updates",
+  updateVersion: "Pulse {0}",
+  updateNotChecked: "Not checked for updates yet.",
+  updateChecking: "Checking for updates…",
+  updateUpToDate: "Up to date. Checked {0}.",
+  updateAvailable: "Version {0} is available.",
+  updateDownloading: "Downloading {0}…",
+  updateInstalling: "Starting the installer. Pulse will close and open again.",
+  updateFailed: "That didn't work: {0}",
+  updateUnsupported: "Pulse Dev doesn't update itself. Build it again from the checkout.",
+  checkNow: "Check Now",
+  installAndRestart: "Install and Restart",
+  whatsNew: "What's new in {0}",
+  autoUpdate: "Check for updates automatically",
+  autoUpdateHint: "Pulse asks GitHub every few hours. When a new version is out it shows a notification, and installs it only when you choose to.",
 };
 
 type Key = keyof typeof english;
@@ -149,6 +165,21 @@ const russian: Record<Key, string> = {
   general: "Общие",
   launchAtLogin: "Запускать при входе в Windows",
   about: "Pulse {0} для Windows. Без аккаунта и сервера Pulse: все цифры приходят напрямую от самих сервисов.",
+  updates: "Обновления",
+  updateVersion: "Pulse {0}",
+  updateNotChecked: "Обновления ещё не проверялись.",
+  updateChecking: "Проверяю обновления…",
+  updateUpToDate: "Установлена последняя версия. Проверено {0}.",
+  updateAvailable: "Доступна версия {0}.",
+  updateDownloading: "Загружаю {0}…",
+  updateInstalling: "Запускаю установщик. Pulse закроется и откроется снова.",
+  updateFailed: "Не получилось: {0}",
+  updateUnsupported: "Pulse Dev не обновляется сам — соберите его заново из исходников.",
+  checkNow: "Проверить сейчас",
+  installAndRestart: "Установить и перезапустить",
+  whatsNew: "Что нового в {0}",
+  autoUpdate: "Проверять обновления автоматически",
+  autoUpdateHint: "Раз в несколько часов Pulse спрашивает GitHub. Когда выходит новая версия, появляется уведомление, а устанавливается она только тогда, когда вы решите.",
 };
 
 export const locale: string = navigator.language || "en";

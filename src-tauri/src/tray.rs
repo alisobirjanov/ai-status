@@ -1,6 +1,8 @@
 //! The notification-area icon: the always-there way into Pulse, whether or
 //! not the panel is showing.
 
+use std::sync::Mutex;
+
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Wry};
@@ -9,10 +11,17 @@ use crate::i18n::text;
 use crate::model::{percent_value, State};
 use crate::store::Snapshot;
 
-const TRAY_ID: &str = "main";
+pub const TRAY_ID: &str = "main";
 
 pub struct TrayMenu {
+    menu: Menu<Wry>,
     panel_item: CheckMenuItem<Wry>,
+    /// At the top of the menu while a new version is on offer, and not there
+    /// otherwise: a disabled "no update" line would be a menu item that does
+    /// nothing.
+    update_item: MenuItem<Wry>,
+    update_separator: PredefinedMenuItem<Wry>,
+    update_shown: Mutex<bool>,
 }
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
@@ -27,7 +36,15 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             &MenuItem::with_id(app, "quit", text("quit"), true, None::<&str>)?,
         ],
     )?;
-    app.manage(TrayMenu { panel_item });
+    let update_item = MenuItem::with_id(app, "install-update", text("installUpdate"), true, None::<&str>)?;
+    let update_separator = PredefinedMenuItem::separator(app)?;
+    app.manage(TrayMenu {
+        menu: menu.clone(),
+        panel_item,
+        update_item,
+        update_separator,
+        update_shown: Mutex::new(false),
+    });
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip(crate::APP_NAME)
@@ -48,6 +65,28 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
 pub fn set_panel_checked(app: &AppHandle, checked: bool) {
     if let Some(menu) = app.try_state::<TrayMenu>() {
         let _ = menu.panel_item.set_checked(checked);
+    }
+}
+
+/// "Install Update 0.2.0…" at the top of the menu.
+pub fn show_update(app: &AppHandle, version: &str) {
+    let Some(tray) = app.try_state::<TrayMenu>() else { return };
+    let _ = tray.update_item.set_text(text("installUpdate").replace("{0}", version));
+    let mut shown = tray.update_shown.lock().unwrap();
+    if !*shown {
+        let _ = tray.menu.insert(&tray.update_separator, 0);
+        let _ = tray.menu.insert(&tray.update_item, 0);
+        *shown = true;
+    }
+}
+
+pub fn hide_update(app: &AppHandle) {
+    let Some(tray) = app.try_state::<TrayMenu>() else { return };
+    let mut shown = tray.update_shown.lock().unwrap();
+    if *shown {
+        let _ = tray.menu.remove(&tray.update_item);
+        let _ = tray.menu.remove(&tray.update_separator);
+        *shown = false;
     }
 }
 

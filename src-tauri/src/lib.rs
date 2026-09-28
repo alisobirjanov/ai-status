@@ -16,6 +16,7 @@ mod report;
 mod settings;
 mod store;
 mod tray;
+mod updater;
 
 use std::sync::Mutex;
 
@@ -71,6 +72,7 @@ struct SettingsPatch {
     ring_shows: Option<RingShows>,
     limit_letters: Option<bool>,
     panel_visible: Option<bool>,
+    checks_for_updates: Option<bool>,
 }
 
 #[tauri::command]
@@ -107,6 +109,9 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
         if let Some(visible) = patch.panel_visible {
             settings.panel_visible = visible;
         }
+        if let Some(checks) = patch.checks_for_updates {
+            settings.checks_for_updates = checks;
+        }
         // Switching a provider on is the initial choice.
         if !settings.enabled.is_empty() {
             settings.has_chosen = true;
@@ -137,6 +142,12 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
     store::emit_snapshot(&app);
     store::refresh(&app, &ask);
     state.wake.notify_one();
+
+    // Switched back on: look now rather than in six hours.
+    if new.checks_for_updates && !old.checks_for_updates {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move { updater::check(&app, false).await });
+    }
 }
 
 #[tauri::command]
@@ -193,6 +204,21 @@ fn set_autostart(app: AppHandle, enabled: bool) -> bool {
     manager.is_enabled().unwrap_or(false)
 }
 
+#[tauri::command]
+fn get_update(app: AppHandle) -> updater::UpdateInfo {
+    updater::info(&app)
+}
+
+#[tauri::command]
+async fn check_for_update(app: AppHandle) {
+    updater::check(&app, true).await;
+}
+
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<(), String> {
+    updater::install(&app).await
+}
+
 // MARK: - Shell
 
 fn show_settings(app: &AppHandle) {
@@ -247,12 +273,15 @@ pub fn run() {
         // another rail.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_settings(app)))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .manage(AppState {
             settings: Mutex::new(Settings::load()),
             store: Mutex::new(Store::new()),
             wake: tokio::sync::Notify::new(),
         })
         .manage(PanelState::new())
+        .manage(updater::UpdateState::new())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             get_layout,
@@ -264,12 +293,23 @@ pub fn run() {
             open_settings,
             get_autostart,
             set_autostart,
+            get_update,
+            check_for_update,
+            install_update,
         ])
         .on_menu_event(|app, event| match event.id().as_ref() {
             "toggle-panel" => toggle_panel(app),
             "hide-panel" => update_settings(app.clone(), SettingsPatch { panel_visible: Some(false), ..Default::default() }),
             "refresh" => store::refresh_all(app),
             "settings" => show_settings(app),
+            "install-update" => {
+                // Settings shows the download; the installer takes over after.
+                show_settings(app);
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = updater::install(&app).await;
+                });
+            }
             "quit" => app.exit(0),
             _ => {}
         })
@@ -284,6 +324,7 @@ pub fn run() {
             panel::sync(&handle);
             panel::start_pointer_watch(handle.clone());
             store::start_loop(handle.clone());
+            updater::start(handle.clone());
 
             // First launch enables nothing and reads nothing: it asks.
             if !settings.has_chosen {

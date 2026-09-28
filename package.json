@@ -12,7 +12,9 @@
     "app": "node scripts/dev-app.mjs",
     "app:start": "node scripts/dev-app.mjs start",
     "app:stop": "node scripts/dev-app.mjs stop",
-    "app:dev": "tauri dev --config src-tauri/tauri.dev.conf.json"
+    "app:dev": "tauri dev --config src-tauri/tauri.dev.conf.json",
+    "release:version": "node scripts/release.mjs version",
+    "release:check": "node scripts/release.mjs check"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1"

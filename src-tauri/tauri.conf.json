@@ -30,6 +30,19 @@
       "nsis": {
         "installMode": "currentUser"
       }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgyQjc1OEQ0MTAwOTE0NDgKUldSSUZBa1ExRmkzZ2liMzVsUzhBTmJKQ0IzdFNiVEtieWt6UFY0K3Nqd3pBbGJ6UDdrQ0R3eDYK",
+      "endpoints": [
+        "https://github.com/alisobirjanov/ai-status/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      },
+      "requireSignedVersion": true
     }
   }
 }

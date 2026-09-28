@@ -8,7 +8,7 @@ import { listen } from "@tauri-apps/api/event";
 import { reasonText, relative } from "../shared/format";
 import { t, type StringKey } from "../shared/i18n";
 import { icon } from "../shared/icons";
-import type { AccountView, CodexSource, Provider, RingShows, SettingsPatch, Snapshot } from "../shared/types";
+import type { AccountView, CodexSource, Provider, RingShows, SettingsPatch, Snapshot, UpdateInfo } from "../shared/types";
 import "./settings.css";
 
 const PROVIDERS: Provider[] = ["claudeCode", "codex"];
@@ -208,6 +208,87 @@ function settingLine(label: string, control: HTMLElement, hint?: string): HTMLEl
   return box;
 }
 
+// MARK: - Updates
+
+const updateName = element("div", "name");
+const updateStatus = element("p", "hint");
+const checkButton = element("button", undefined, t("checkNow"));
+const installButton = element("button", "primary", t("installAndRestart"));
+const updateProgress = element("div", "progress");
+const updateProgressFill = element("div");
+updateProgress.appendChild(updateProgressFill);
+const notesTitle = element("div", "name");
+const notes = element("p", "notes");
+const autoUpdateSwitch = switchInput(t("autoUpdate"));
+const autoUpdateLine = settingLine(t("autoUpdate"), autoUpdateSwitch, t("autoUpdateHint"));
+
+function buildUpdates() {
+  const box = element("div", "setting");
+  const line = element("div", "line");
+  const text = element("div", "grow");
+  text.append(updateName, updateStatus);
+  line.append(text, checkButton, installButton);
+  box.append(line, updateProgress, notesTitle, notes);
+
+  checkButton.addEventListener("click", () => void invoke("check_for_update"));
+  // A failure comes back as an `update` event too, so there is nothing to
+  // do with the rejection here.
+  installButton.addEventListener("click", () => void invoke("install_update").catch(() => undefined));
+  autoUpdateSwitch.addEventListener("change", () => update({ checksForUpdates: autoUpdateSwitch.checked }));
+
+  document.getElementById("updates-group")!.append(box, autoUpdateLine);
+}
+
+function updateStatusText(info: UpdateInfo): string {
+  const version = info.version ?? "";
+  switch (info.status) {
+    case "unsupported":
+      return t("updateUnsupported");
+    case "checking":
+      return t("updateChecking");
+    case "upToDate":
+      return info.checkedAt != null ? t("updateUpToDate", relative(info.checkedAt)) : t("updateNotChecked");
+    case "available":
+      return t("updateAvailable", version);
+    case "downloading": {
+      const percent = info.progress != null ? ` ${Math.round(info.progress * 100)}%` : "";
+      return t("updateDownloading", version) + percent;
+    }
+    case "installing":
+      return t("updateInstalling");
+    case "failed":
+      return t("updateFailed", info.error ?? "");
+    default:
+      return t("updateNotChecked");
+  }
+}
+
+function applyUpdate(info: UpdateInfo) {
+  const busy = info.status === "checking" || info.status === "downloading" || info.status === "installing";
+  const unsupported = info.status === "unsupported";
+
+  updateName.textContent = t("updateVersion", info.current);
+  updateStatus.textContent = updateStatusText(info);
+  updateStatus.className = info.status === "failed" ? "hint problem" : "hint";
+
+  checkButton.hidden = unsupported;
+  checkButton.disabled = busy;
+  // A version found and not yet installed stays on offer after a failed try.
+  installButton.hidden = unsupported || info.version == null;
+  installButton.disabled = busy;
+
+  updateProgress.hidden = !(info.status === "downloading" || info.status === "installing");
+  updateProgressFill.style.width = `${Math.round((info.progress ?? 0) * 100)}%`;
+
+  const hasNotes = info.version != null && !!info.notes;
+  notesTitle.hidden = notes.hidden = !hasNotes;
+  notesTitle.textContent = hasNotes ? t("whatsNew", info.version!) : "";
+  // The notes are the changelog's Markdown; its emphasis marks are noise here.
+  notes.textContent = hasNotes ? info.notes!.replace(/\*\*/g, "") : "";
+
+  autoUpdateLine.hidden = unsupported;
+}
+
 function build(snap: Snapshot) {
   document.title = t("settingsTitle");
   setText("chooser-title", "chooserTitle");
@@ -216,6 +297,7 @@ function build(snap: Snapshot) {
   setText("panel-title", "panel");
   setText("refresh-title", "refreshGroup");
   setText("general-title", "general");
+  setText("updates-title", "updates");
   document.getElementById("about")!.textContent = t("about", snap.version);
 
   const services = document.getElementById("services")!;
@@ -250,6 +332,8 @@ function build(snap: Snapshot) {
   });
   document.getElementById("general-group")!.appendChild(settingLine(t("launchAtLogin"), loginSwitch));
   void invoke<boolean>("get_autostart").then((on) => (loginSwitch.checked = on));
+
+  buildUpdates();
 }
 
 function apply(snap: Snapshot) {
@@ -269,6 +353,7 @@ function apply(snap: Snapshot) {
   lettersLine.hidden = !settings.ringShows.startsWith("both");
   if (document.activeElement !== warningSelect) warningSelect.value = String(settings.warningAt);
   if (document.activeElement !== intervalSelect) intervalSelect.value = String(settings.refreshMinutes ?? 0);
+  autoUpdateSwitch.checked = settings.checksForUpdates;
 }
 
 const first = await invoke<Snapshot>("get_snapshot");
@@ -276,5 +361,15 @@ build(first);
 apply(first);
 await listen<Snapshot>("snapshot", (event) => apply(event.payload));
 
+let updateInfo = await invoke<UpdateInfo>("get_update");
+applyUpdate(updateInfo);
+await listen<UpdateInfo>("update", (event) => {
+  updateInfo = event.payload;
+  applyUpdate(updateInfo);
+});
+
 // "Updated 2 minutes ago" keeps up with the clock.
-window.setInterval(() => snapshot && updateServices(snapshot), 30_000);
+window.setInterval(() => {
+  if (snapshot) updateServices(snapshot);
+  applyUpdate(updateInfo);
+}, 30_000);

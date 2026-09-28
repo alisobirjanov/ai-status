@@ -249,3 +249,32 @@ select:focus-visible {
   font-size: 12px;
   line-height: 1.45;
 }
+
+/* Updates: the download under way, and what the new version brings. */
+
+.progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--control);
+  overflow: hidden;
+}
+
+.progress > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.notes {
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.hint.problem {
+  color: var(--warn);
+}
