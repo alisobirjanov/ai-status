@@ -30,7 +30,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     app.manage(TrayMenu { panel_item });
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
-        .tooltip("Pulse")
+        .tooltip(crate::APP_NAME)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
@@ -71,7 +71,8 @@ pub fn update_tooltip(app: &AppHandle, snapshot: &Snapshot) {
             format!("{} {}", account.name, figure)
         })
         .collect();
-    let tooltip = if figures.is_empty() { "Pulse".to_string() } else { format!("Pulse\n{}", figures.join(" · ")) };
+    let name = crate::APP_NAME;
+    let tooltip = if figures.is_empty() { name.to_string() } else { format!("{name}\n{}", figures.join(" · ")) };
     // The notification area cuts a tooltip at 127 characters.
     let _ = tray.set_tooltip(Some(tooltip.chars().take(127).collect::<String>()));
 }

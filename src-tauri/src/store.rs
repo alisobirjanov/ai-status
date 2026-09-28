@@ -127,7 +127,7 @@ impl Store {
             })
             .collect();
 
-        Snapshot { accounts, settings: settings.clone(), version: env!("CARGO_PKG_VERSION") }
+        Snapshot { accounts, settings: settings.clone(), version: crate::VERSION }
     }
 
     fn interval_ms(&self, provider: Provider, settings: &Settings, now: i64) -> i64 {

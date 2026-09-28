@@ -20,13 +20,13 @@ pub fn codex_dir() -> PathBuf {
         .unwrap_or_else(|| home().join(".codex"))
 }
 
-/// Pulse's settings and banked readings: `%APPDATA%\Pulse`. A fixed path
-/// rather than one derived from the app handle, because `--json` reads it
-/// without starting the app.
+/// Pulse's settings and banked readings: `%APPDATA%\Pulse`, or
+/// `%APPDATA%\Pulse Dev` for a dev copy. A fixed path rather than one derived
+/// from the app handle, because `--json` reads it without starting the app.
 pub fn data_dir() -> PathBuf {
     dirs::data_dir()
         .unwrap_or_else(|| home().join("AppData").join("Roaming"))
-        .join("Pulse")
+        .join(crate::APP_NAME)
 }
 
 /// Write a file so that a crash halfway never leaves half of it behind.

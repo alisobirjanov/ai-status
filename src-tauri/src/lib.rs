@@ -30,6 +30,20 @@ use store::{AppState, Snapshot, Store};
 
 const SETTINGS_LABEL: &str = "settings";
 
+/// A copy built to try changes beside the installed Pulse: any debug build,
+/// or a release built with `tauri.dev.conf.json`. It keeps its own settings
+/// and readings and is never made a login item, so running it cannot move,
+/// reconfigure or replace the Pulse somebody actually uses. The overlay also
+/// gives it its own identifier and product name, which is what keeps the
+/// single-instance lock, the WebView profile and the login entry apart.
+pub(crate) const IS_DEV_COPY: bool = cfg!(any(debug_assertions, feature = "dev-copy"));
+
+/// On the tray and the data folder, so the two copies can be told apart.
+pub(crate) const APP_NAME: &str = if IS_DEV_COPY { "Pulse Dev" } else { "Pulse" };
+
+pub(crate) const VERSION: &str =
+    if IS_DEV_COPY { concat!(env!("CARGO_PKG_VERSION"), "-dev") } else { env!("CARGO_PKG_VERSION") };
+
 // MARK: - Commands
 
 #[tauri::command]
@@ -202,7 +216,7 @@ pub(crate) fn toggle_panel(app: &AppHandle) {
 /// turned back on by a later launch. Only for an installed build — a
 /// development binary registered to start at login would outlive the checkout.
 fn decide_login_item(app: &AppHandle) {
-    if cfg!(debug_assertions) {
+    if IS_DEV_COPY {
         return;
     }
     let state = app.state::<AppState>();

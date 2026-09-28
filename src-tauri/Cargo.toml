@@ -17,6 +17,11 @@ opt-level = "s"
 panic = "abort"
 strip = true
 
+[features]
+# A release build that runs beside the installed Pulse without touching it.
+# Turned on by `tauri.dev.conf.json`; see docs/development.md.
+dev-copy = []
+
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
