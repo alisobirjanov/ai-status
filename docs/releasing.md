@@ -1,24 +1,36 @@
 # Releasing
 
-A release is a tag. GitHub Actions (`.github/workflows/release.yml`) builds
-and signs the installer on a Windows runner and publishes it as this
-repository's latest release — which is exactly what installed copies ask.
+A release is a merge. When a push to `main` — a merged pull request, or a
+push straight to it — carries a version that has no `v*` tag yet, GitHub
+Actions (`.github/workflows/release.yml`) builds and signs the installer on a
+Windows runner, publishes it as this repository's latest release — which is
+exactly what installed copies ask — and makes the tag on that commit.
 
 ## Cutting a release
+
+In the pull request (or on `main`):
 
 ```powershell
 npm run release:version 0.2.0   # writes the version everywhere it lives
 # write the "## 0.2.0" entry in CHANGELOG.md — Russian, then English
 npm run release:check 0.2.0     # what the workflow will check first
 git commit -am "Pulse 0.2.0"
-git push origin main
-git tag v0.2.0
-git push origin v0.2.0
 ```
 
-The workflow then:
+Merge it, and 0.2.0 is released. No tag to push.
 
-1. refuses a tag that disagrees with `package.json`, `tauri.conf.json`,
+The pull request already says what merging will do: its **Build** check
+fails if the new version has no `CHANGELOG.md` entry or disagrees with a
+file, and its summary says "Merging this into main releases Pulse 0.2.0" —
+or, for a version already released, that merging publishes nothing.
+
+**A merge that does not raise the version releases nothing.** An installed
+copy only takes a version newer than its own, so the same version cannot be
+offered twice; the run says so in its summary and succeeds.
+
+On `main`, the workflow then:
+
+1. refuses a version that disagrees with `package.json`, `tauri.conf.json`,
    `Cargo.toml` or `Cargo.lock`, or has no `CHANGELOG.md` entry — before
    anything is built;
 2. builds the pages and runs the tests (warnings are failures);
@@ -27,13 +39,23 @@ The workflow then:
    address and its signature;
 5. publishes `Pulse-<version>-x64-setup.exe`, its `.sig` and `latest.json` as
    release `v<version>`: as a draft until every file is there, then as the
-   latest release;
+   latest release, making tag `v<version>` on the commit it built;
 6. asks the feed the way an installed copy does, and fails if it does not
    offer the new version.
 
-A version with a suffix (`v0.2.0-beta.1`) is published as a pre-release.
+Because the tag is made only when the release is published, a run that fails
+before then leaves nothing behind: fix the cause, and the next push to `main`
+tries the same version again. Two merges close together are released one
+after the other; the second finds the first's tag.
+
+A version with a suffix (`0.2.0-beta.1`) is published as a pre-release.
 GitHub never makes a pre-release the latest release, so installed copies are
 not offered it — only people who download it get it.
+
+A `v*` tag pushed by hand still publishes that tag (`git tag v0.2.0` and
+`git push origin v0.2.0`), for a commit that is not on `main`'s tip. Do not
+also merge the same version: the merge's run would find the tag and do
+nothing, but a hand-pushed tag and a merge racing each other both build.
 
 If a step fails after publishing, fix the cause and re-run the workflow for
 the same tag (**Actions → Release → Run workflow**, tag `v0.2.0`). It replaces

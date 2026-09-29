@@ -1,8 +1,9 @@
 # Pulse for Windows — changes
 
-Each release needs an entry here before it is tagged: the release workflow
-refuses a tag without one, and its words are what installed copies show when
-they offer the update. Russian first, then English.
+Each release needs an entry here before its version reaches main: merging
+releases it, the release workflow refuses a version without one, and its
+words are what installed copies show when they offer the update. Russian
+first, then English.
 
 ## 0.1.4
 

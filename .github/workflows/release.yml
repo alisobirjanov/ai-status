@@ -1,14 +1,21 @@
 name: Release
 
-# Tag and push, and that is the whole publishing step:
+# Merging into main is the whole publishing step. When what lands on main
+# carries a version that has no v* tag yet, it is built, signed and published,
+# and the tag is made then, on that commit:
 #
-#   npm run release:version 0.2.0    # then write CHANGELOG.md's entry and commit
-#   git tag v0.2.0 && git push origin v0.2.0
+#   npm run release:version 0.2.0    # in the pull request, with
+#                                    # CHANGELOG.md's entry for 0.2.0
+#
+# A push to main whose version is already released publishes nothing. A v*
+# tag pushed by hand still publishes that tag; a tag this workflow makes does
+# not start it again (GitHub never runs workflows for its own token's pushes).
 #
 # Installed copies ask this repository's latest release for latest.json, so
 # what this publishes is exactly what they are offered. See docs/releasing.md.
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -19,12 +26,61 @@ on:
 permissions:
   contents: write
 
+# One at a time, so a second merge waits and then finds the first's tag.
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
+  # What there is to publish: a tag's version, or main's when it is new.
+  version:
+    runs-on: ubuntu-latest
+
+    outputs:
+      publish: ${{ steps.decide.outputs.publish }}
+      tag: ${{ steps.decide.outputs.tag }}
+      version: ${{ steps.decide.outputs.version }}
+      ref: ${{ steps.decide.outputs.ref }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.sha }}
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
+
+      - name: Decide
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_type }}" = "branch" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+            TAG="v$VERSION"
+            REF="${{ github.sha }}"
+            if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+              echo "$TAG is already released, so this push publishes nothing. To release it, raise the version (npm run release:version) and add its CHANGELOG.md entry." >> "$GITHUB_STEP_SUMMARY"
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "main carries $VERSION, which has no $TAG yet: publishing it." >> "$GITHUB_STEP_SUMMARY"
+          else
+            TAG="${{ github.event.inputs.tag || github.ref_name }}"
+            case "$TAG" in
+              v*) ;;
+              *) echo "::error::$TAG is not a v* tag."; exit 1 ;;
+            esac
+            VERSION="${TAG#v}"
+            REF="$TAG"
+          fi
+          {
+            echo "publish=true"
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "ref=$REF"
+          } >> "$GITHUB_OUTPUT"
+
   release:
+    needs: version
+    if: needs.version.outputs.publish == 'true'
     runs-on: windows-latest
 
     defaults:
@@ -34,26 +90,18 @@ jobs:
     env:
       # Warnings are failures.
       RUSTFLAGS: -D warnings
+      TAG: ${{ needs.version.outputs.tag }}
+      VERSION: ${{ needs.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ needs.version.outputs.ref }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Version from the tag
-        run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          case "$TAG" in
-            v*) ;;
-            *) echo "::error::$TAG is not a v* tag."; exit 1 ;;
-          esac
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
-          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
 
       # Before anything is built. The installer and the updater read the
       # version from tauri.conf.json; a tag that disagrees would offer every
@@ -76,7 +124,7 @@ jobs:
       - name: Pages
         run: npm run build
 
-      # A tag publishes to everyone who has Pulse installed; the tests are the
+      # A release goes to everyone who has Pulse installed; the tests are the
       # last thing between a regression in the rules and that.
       - name: Tests
         run: npm test
@@ -138,10 +186,14 @@ jobs:
 
           # A draft until every asset is there: the moment it is published it
           # is the latest release, and installed copies ask for its
-          # latest.json straight away.
+          # latest.json straight away. Released from main, the tag does not
+          # exist yet: publishing makes it, on the commit that was built — so
+          # a build that fails on the way leaves no tag, and the next push
+          # to main tries again.
           gh release create "$TAG" "${ASSETS[@]}" \
             --title "Pulse $VERSION" \
             --notes-file "$OUT/notes.md" \
+            --target "$(git rev-parse HEAD)" \
             --draft
 
           # A tag like v0.2.0-beta.1 is a pre-release. GitHub never makes one

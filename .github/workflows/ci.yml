@@ -1,7 +1,8 @@
 name: Build
 
 # Every push to main and every pull request: the pages build, the Rust tests
-# pass, and neither leaves a warning. Releases build the installer too; see
+# pass, and neither leaves a warning — and a pull request says whether merging
+# it releases a new version. Releases build the installer too; see
 # release.yml.
 on:
   push:
@@ -46,3 +47,19 @@ jobs:
 
       - name: Tests
         run: npm test
+
+      # What merging does: a version with no tag yet is released the moment it
+      # reaches main (release.yml), so its changelog entry has to be there
+      # before then. Said here, on the pull request, rather than found out
+      # from a failed release.
+      - name: What merging releases
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "v$VERSION is already released: merging this publishes nothing. To release it, raise the version (npm run release:version) and add its CHANGELOG.md entry." >> "$GITHUB_STEP_SUMMARY"
+          else
+            node scripts/release.mjs check "$VERSION"
+            echo "Merging this into main releases Pulse $VERSION." >> "$GITHUB_STEP_SUMMARY"
+          fi
