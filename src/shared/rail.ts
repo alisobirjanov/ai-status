@@ -123,11 +123,11 @@ function ring(account: AccountView, settings: Settings, arcs: [UsageWindow | und
 
   const gauge = svg("svg", { class: "gauge", width: RING, height: RING, viewBox: `0 0 ${RING} ${RING}` });
   for (const [window, shape] of arcs) {
-    gauge.appendChild(arc(shape, { stroke: "rgba(255,255,255,0.14)" }));
+    gauge.appendChild(arc(shape, { class: "track" }));
     if (!window) continue;
     // Spent fills the ring whichever way the figure is counted.
     const fraction = isSpent(window) ? 1 : Math.min(Math.max(shownFraction(window, settings.showsRemaining), 0), 1);
-    if (fraction > 0) gauge.appendChild(arc(shape, { class: "usage", stroke: tint(window, settings.warningAt) }, fraction));
+    if (fraction > 0) gauge.appendChild(arc(shape, { class: "usage", style: `stroke: ${tint(window, settings.warningAt)}` }, fraction));
   }
 
   if (account.refreshing) {
@@ -138,7 +138,6 @@ function ring(account: AccountView, settings: Settings, arcs: [UsageWindow | und
         cy: 20,
         r: RADIUS,
         fill: "none",
-        stroke: "rgba(255,255,255,0.85)",
         "stroke-width": STROKE,
         "stroke-linecap": "round",
         "stroke-dasharray": `${CIRCUMFERENCE * 0.18} ${CIRCUMFERENCE}`,

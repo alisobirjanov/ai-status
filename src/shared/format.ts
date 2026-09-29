@@ -36,13 +36,17 @@ export function isSpent(window: UsageWindow | undefined): boolean {
   return !!window && (window.isExhausted || window.usedFraction >= 1);
 }
 
+/**
+ * CSS colours, defined in `rail.css`: each is light or dark by the theme of
+ * wherever it is drawn, so they go in a style, never an SVG attribute.
+ */
 export const colours = {
   /** The 5-hour limit, and any other that is not weekly: `--accent` in settings.css. */
-  fiveHour: "#ff7a45",
+  fiveHour: "var(--rail-five-hour)",
   /** `--weekly` in settings.css. */
-  weekly: "#b9a6ff",
-  warning: "rgb(255, 79, 66)",
-  exhausted: "rgb(217, 23, 33)",
+  weekly: "var(--rail-weekly)",
+  warning: "var(--rail-warning)",
+  exhausted: "var(--rail-spent)",
 };
 
 /**

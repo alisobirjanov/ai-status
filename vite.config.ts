@@ -8,6 +8,11 @@ export default defineConfig({
   server: { port: 1420, strictPort: true },
   build: {
     target: "es2022",
+    // WebView2 is Chromium, which has light-dark() from 123. For anything
+    // older the build rewrites it into variables settled where a colour is
+    // declared rather than where it is used, and a theme inside another —
+    // the theme thumbnails, a rail kept dark — takes the page's instead.
+    cssTarget: "chrome123",
     outDir: "dist",
     rollupOptions: {
       input: {

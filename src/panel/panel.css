@@ -1,14 +1,9 @@
 /* The floating panel. Sizes are the budgets `panel.rs` sends in `Layout`;
-   what is fixed here is only what sits inside a card. */
+   what is fixed here is only what sits inside a card. The colours are the
+   rail's (`src/shared/rail.css`), in the theme `main.ts` puts on the page. */
 
 :root {
-  color-scheme: dark;
   font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --surface: #000;
-  --text: rgba(255, 255, 255, 0.94);
-  --text-secondary: rgba(255, 255, 255, 0.52);
-  --text-tertiary: rgba(255, 255, 255, 0.4);
-  --track: rgba(255, 255, 255, 0.14);
 }
 
 html,
@@ -34,9 +29,9 @@ body {
 }
 
 #surface path {
-  fill: var(--surface);
+  fill: var(--rail-surface);
   /* Drawn under the fill, so only its outer half shows: a hairline outside. */
-  stroke: rgba(255, 255, 255, 0.09);
+  stroke: var(--rail-hairline);
   stroke-width: 2px;
   paint-order: stroke;
   transition: fill 0.2s ease;
@@ -67,7 +62,7 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 8px 18px light-dark(rgb(28 26 23 / 0.18), rgb(0 0 0 / 0.35)));
 }
 
 #card[hidden] {
@@ -79,8 +74,8 @@ body {
   box-sizing: border-box;
   padding: 18px;
   border-radius: 20px;
-  background: var(--surface);
-  color: var(--text);
+  background: var(--rail-surface);
+  color: var(--rail-text);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -94,7 +89,7 @@ body {
 }
 
 .card-tail path {
-  fill: var(--surface);
+  fill: var(--rail-surface);
 }
 
 @keyframes appear {
@@ -130,7 +125,7 @@ body {
 .bar {
   height: 6px;
   border-radius: 3px;
-  background: var(--track);
+  background: var(--rail-track);
   overflow: hidden;
 }
 
@@ -154,7 +149,7 @@ body {
 }
 
 .reset {
-  color: var(--text-secondary);
+  color: var(--rail-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,11 +168,11 @@ body {
 .message {
   font-size: 12px;
   line-height: 1.35;
-  color: var(--text-secondary);
+  color: var(--rail-text-secondary);
 }
 
 .footnote {
   font-size: 11px;
   line-height: 1.35;
-  color: var(--text-tertiary);
+  color: var(--rail-text-tertiary);
 }

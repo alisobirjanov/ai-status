@@ -7,6 +7,9 @@ export type UsageState = "live" | "stale" | "unavailable";
 export type Route = "endpoint" | "appServer";
 export type CodexSource = "automatic" | "endpoint" | "tooling";
 export type RingShows = "fullest" | "fiveHour" | "weekly" | "bothSplit" | "bothStacked" | "bothNested";
+export type Theme = "system" | "light" | "dark";
+/** A theme settled: what System stands for at the moment. */
+export type Scheme = Exclude<Theme, "system">;
 
 export type Reason =
   | "notChecked"
@@ -73,6 +76,8 @@ export interface Settings {
   panelVisible: boolean;
   tucksAway: boolean;
   showsCard: boolean;
+  theme: Theme;
+  railStaysDark: boolean;
   checksForUpdates: boolean;
 }
 
@@ -80,6 +85,8 @@ export interface Snapshot {
   accounts: AccountView[];
   settings: Settings;
   version: string;
+  /** Light or dark as Windows has it, for a theme left to follow it. */
+  systemTheme: Scheme;
 }
 
 export interface Rect {
@@ -118,6 +125,8 @@ export interface SettingsPatch {
   panelVisible?: boolean;
   tucksAway?: boolean;
   showsCard?: boolean;
+  theme?: Theme;
+  railStaysDark?: boolean;
   checksForUpdates?: boolean;
 }
 
