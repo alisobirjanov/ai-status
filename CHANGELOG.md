@@ -5,6 +5,24 @@ releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
 
+## 0.1.5
+
+**Русский**
+
+- Панель прилипает и к верхнему краю экрана. Перетащите её наверх — она повернётся набок: кольца встанут в ряд, значения — рядом с ними, а карточка будет открываться снизу. «Прятать у края экрана» работает и там.
+- Края притягивают панель, как магнит. Поднесите её к краю — она прилипнет ещё до того, как вы её отпустите, и дальше будет скользить вдоль края за мышью. Оторвётся она, только если отвести её подальше.
+- Всё это анимировано: панель плавно сливается с краем и отделяется от него, поворачивается по пути наверх и обратно и мягко встаёт на место.
+- Карточка открывается плавнее: она вырастает из кольца, на которое вы навели мышь, переезжает от кольца к кольцу, когда вы ведёте мышь вдоль панели, и плавно гаснет, когда мышь уходит.
+- Исправлено: поверх панели мог появиться заголовок окна или рамка в старом стиле Windows и так и остаться — после щелчка правой кнопкой или когда мышь быстро проходила над панелью.
+
+**English**
+
+- The panel docks at the top of the screen too. Drag it to the top edge and it turns on its side: the rings sit in a row with their figures beside them, and the card opens below. "Tuck away at the edge" works there as well.
+- Edges pull the panel in like a magnet. Carry it close to one and it docks before you let go, then slides along the edge with the mouse. It comes off only when you pull it well away.
+- Docking is animated. The panel melts into the edge and peels away from it, turns smoothly on its way to or from the top, and glides into place.
+- The card opens more smoothly. It grows out from the ring you point at, glides from one ring to the next as you move along the panel, and fades away when you move off.
+- Fixed: a title bar or an old-style Windows frame could appear over the panel and stay there, after a right-click or when the mouse passed over the panel quickly.
+
 ## 0.1.4
 
 **Русский**
