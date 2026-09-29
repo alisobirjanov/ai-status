@@ -34,7 +34,7 @@ pub struct Settings {
     pub panel_visible: bool,
     /// The rail's top-left corner on screen, in physical pixels.
     pub rail_position: Option<(i32, i32)>,
-    /// The side of the screen the rail is fused to, if it was left against
+    /// The edge of the screen the rail is fused to, if it was left against
     /// one. Kept by Rust with `rail_position`, never by a page.
     #[serde(deserialize_with = "or_default")]
     pub rail_dock: Option<Side>,
@@ -293,6 +293,17 @@ mod tests {
         assert_eq!(Theme::System.for_window(), None);
         assert_eq!(Theme::Light.for_window(), Some(tauri::Theme::Light));
         assert_eq!(Theme::Dark.resolved(), tauri::Theme::Dark);
+    }
+
+    #[test]
+    fn a_rail_left_across_the_top_is_put_back_there() {
+        let settings: Settings = serde_json::from_str(r#"{ "railPosition": [500, 0], "railDock": "top" }"#).unwrap();
+        assert_eq!(settings.rail_position, Some((500, 0)));
+        assert_eq!(settings.rail_dock, Some(Side::Top));
+        // An edge this version doesn't know floats it where it was.
+        let settings: Settings = serde_json::from_str(r#"{ "railPosition": [500, 0], "railDock": "bottom" }"#).unwrap();
+        assert_eq!(settings.rail_position, Some((500, 0)));
+        assert_eq!(settings.rail_dock, None);
     }
 
     #[test]

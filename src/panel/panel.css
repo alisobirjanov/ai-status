@@ -21,14 +21,22 @@ body {
 
 /* What the rail is drawn on: a capsule floating, fused to the screen edge
    docked, a sliver tucked away. One outline, redrawn at every step as it
-   opens and closes (`main.ts`), so it reads as one thing changing size.
-   No shadow: round the rail it read as a smudge on the desktop. */
+   opens and closes, fuses and turns (`main.ts`), so it reads as one thing
+   changing shape. It spans the window, for the outline to go anywhere in it
+   on the way; only the outline takes the pointer. No shadow: round the rail
+   it read as a smudge on the desktop. */
 #surface {
   position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
+  pointer-events: none;
 }
 
 #surface path {
+  pointer-events: visiblePainted;
   fill: var(--rail-surface);
   /* Drawn under the fill, so only its outer half shows: a hairline outside. */
   stroke: var(--rail-hairline);
@@ -49,14 +57,21 @@ body {
   transition: opacity 0.1s ease-out;
 }
 
-/* Each service's place on it. What is inside one is `src/shared/rail.css`. */
+/* Each service's place on it: a band down it, or across the top of the
+   screen one beside the next. What is inside one is `src/shared/rail.css`. */
 #rail .item {
   position: absolute;
   left: 0;
   width: 100%;
 }
 
-/* The card: a body and a pointer aimed at the ring, one shadow for both. */
+#rail.across .item {
+  top: 0;
+  height: 100%;
+}
+
+/* The card: a body and a pointer aimed at the ring, one shadow for both.
+   It comes and goes as one, grown out of the pointer and faded (`main.ts`). */
 
 #card {
   position: absolute;
@@ -79,7 +94,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  animation: appear 0.09s ease-out;
 }
 
 .card-tail {
@@ -88,14 +102,14 @@ body {
   height: 40px;
 }
 
-.card-tail path {
-  fill: var(--rail-surface);
+/* Under a rail across the top, pointing up at it. */
+.card-tail.up {
+  width: 40px;
+  height: 20px;
 }
 
-@keyframes appear {
-  from {
-    opacity: 0;
-  }
+.card-tail path {
+  fill: var(--rail-surface);
 }
 
 .card-header {

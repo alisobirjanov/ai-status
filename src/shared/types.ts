@@ -97,20 +97,30 @@ export interface Rect {
 }
 
 export interface Layout {
-  side: "left" | "right";
+  /** Where the rail is in the window: down its left or right, or across its top. */
+  side: "left" | "right" | "top";
   rail: Rect;
-  padTop: number;
-  itemHeight: number;
+  /** Before the first item, from the rail's top down a side and its left end across the top. */
+  padStart: number;
+  /** One service's extent along the rail: its height down a side, its width across the top. */
+  itemLength: number;
   itemSpacing: number;
   gap: number;
   cardWidth: number;
   pointerWidth: number;
   margin: number;
   visible: Rect;
-  /** The screen edge the rail is fused to; null floating. */
-  dock: "left" | "right" | null;
-  /** How far a docked rail's ends reach beyond `rail`, above and below. */
+  /** The screen edge the rail is fused to; null floating. Only a rail docked at the top lies across. */
+  dock: "left" | "right" | "top" | null;
+  /** Laid out while it is carried, on its way somewhere: animated to, and the drag goes on. */
+  carried: boolean;
+  /** How far a docked rail's ends reach beyond `rail`, along the edge. */
   flare: number;
+  /** The window's size: the viewport, once it has caught up with a new one. */
+  width: number;
+  height: number;
+  /** Which layout this is, for saying when it has been drawn. */
+  generation: number;
 }
 
 export interface SettingsPatch {

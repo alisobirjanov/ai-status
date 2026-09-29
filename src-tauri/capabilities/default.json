@@ -4,7 +4,6 @@
   "description": "What the panel and the settings window may call.",
   "windows": ["panel", "settings"],
   "permissions": [
-    "core:default",
-    "core:window:allow-start-dragging"
+    "core:default"
   ]
 }

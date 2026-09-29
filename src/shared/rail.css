@@ -1,6 +1,7 @@
-/* One service on the rail (`rail.ts`): what sits inside a ring and under it,
-   and the colours it is drawn in. The panel and the preview in Settings both
-   draw it; where each item goes is the page's own business. */
+/* One service on the rail (`rail.ts`): what sits inside a ring and under it
+   — or beside it, across the top of the screen — and the colours it is drawn
+   in. The panel and the preview in Settings both draw it; where each item
+   goes is the page's own business. */
 
 /* The rail's colours, light or dark by the `color-scheme` where each is
    used rather than where it is set: the panel is all rail, while in Settings
@@ -54,6 +55,52 @@
 /* Two rings, a little apart. */
 .rail-face .item.stacked .label + .ring {
   margin-top: 8px;
+}
+
+/* Across the top of the screen (only the panel lies that way): each figure
+   beside its ring instead of under it, the ring and its figures centred in
+   the room the item has. */
+.rail-face.across .item {
+  flex-direction: row;
+  gap: 6px;
+}
+
+.rail-face.across .item .label,
+.rail-face.across .item.split .label:first-child {
+  margin: 0;
+}
+
+/* One ring and both figures: the 5-hour one over the weekly one, as the
+   halves of a split ring are, the two centred on the ring together. */
+.rail-face.across .item.split,
+.rail-face.across .item.nested {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-content: center;
+  justify-content: center;
+  gap: 0 6px;
+}
+
+.rail-face.across .item.split .ring,
+.rail-face.across .item.nested .ring {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.rail-face.across .item.split .label,
+.rail-face.across .item.nested .label {
+  grid-column: 2;
+  align-self: end;
+}
+
+.rail-face.across .item.split .label:last-child,
+.rail-face.across .item.nested .label:last-child {
+  align-self: start;
+}
+
+/* Two rings, each with its figure: the pair as far apart as down a side. */
+.rail-face.across .item.stacked .label + .ring {
+  margin: 0 0 0 2px;
 }
 
 .rail-face .ring {

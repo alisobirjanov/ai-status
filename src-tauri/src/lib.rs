@@ -170,11 +170,13 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
     if new.codex_source != old.codex_source && new.is_enabled(Provider::Codex) && !ask.contains(&Provider::Codex) {
         ask.push(Provider::Codex);
     }
-    // What the rings show sets how tall the rail is.
+    // What the rings show sets how long the rail is — and across the top of
+    // the screen, so do the letters beside a pair of figures.
     if new.enabled != old.enabled
         || new.panel_visible != old.panel_visible
         || new.has_chosen != old.has_chosen
         || new.ring_shows != old.ring_shows
+        || new.limit_letters != old.limit_letters
     {
         panel::sync(&app);
     }
@@ -218,15 +220,33 @@ fn set_hit_rects(app: AppHandle, rects: Vec<Rect>) {
     panel::set_hit_rects(&app, rects);
 }
 
+/// The panel has drawn a layout and it is on screen (`panel::drawn`).
+#[tauri::command]
+fn layout_drawn(app: AppHandle, generation: u64) {
+    panel::drawn(&app, generation);
+}
+
 #[tauri::command]
 fn note_looked(app: AppHandle) {
     store::note_looked(&app);
 }
 
+/// The rail was pulled past a click: it follows the pointer from here
+/// (`panel::carry`).
+#[tauri::command]
+fn panel_drag(app: AppHandle) {
+    panel::carry(&app);
+}
+
 /// The rail's own menu, on a right click — a way into Settings that does not
 /// depend on finding the tray icon.
+///
+/// Async, so the menu goes up from the event loop, as Tauri's own menus for
+/// a page do. A plain command runs inside WebView2's callback for the page's
+/// call, and the menu holds the main thread until it goes: WebView2 doesn't
+/// support a wait like that inside its callbacks.
 #[tauri::command]
-fn panel_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+async fn panel_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
     let menu = Menu::with_items(
         &app,
@@ -239,12 +259,11 @@ fn panel_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
         ],
     )
     .map_err(|e| e.to_string())?;
-    // The pointer is on the menu, not the rail, for as long as it is open:
-    // without this a docked rail would wind down to its sliver under it.
-    panel::set_menu_open(&app, true);
-    let shown = window.popup_menu(&menu).map_err(|e| e.to_string());
-    panel::set_menu_open(&app, false);
-    shown
+    let handle = app.clone();
+    app.run_on_main_thread(move || {
+        let _ = panel::pop_up_menu(&handle, &window, &menu);
+    })
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -317,7 +336,7 @@ fn show_settings(app: &AppHandle) {
         return;
     }
     let theme = app.state::<AppState>().settings.lock().unwrap().theme;
-    let _ = WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("settings.html".into()))
+    let built = WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("settings.html".into()))
         .title(i18n::text("settingsTitle"))
         // The title bar in the page's theme, and the window too before the
         // page has painted.
@@ -329,6 +348,12 @@ fn show_settings(app: &AppHandle) {
         .prevent_overflow_with_margin(tauri::LogicalSize::new(32.0, 32.0))
         .center()
         .build();
+    // Brought to the front like one already open. Shown new, it is only
+    // asked for: Windows can leave it behind the active window, when that
+    // belongs to another app.
+    if let Ok(window) = built {
+        let _ = window.set_focus();
+    }
 }
 
 /// The page's own background, for the moment before it paints and for the
@@ -410,7 +435,9 @@ pub fn run() {
             update_settings,
             refresh,
             set_hit_rects,
+            layout_drawn,
             note_looked,
+            panel_drag,
             panel_menu,
             open_settings,
             reset_settings,
