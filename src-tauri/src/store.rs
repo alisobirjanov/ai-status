@@ -63,6 +63,8 @@ pub struct Snapshot {
     pub accounts: Vec<AccountView>,
     pub settings: Settings,
     pub version: &'static str,
+    /// Light or dark as Windows has it, for a theme left to follow it.
+    pub system_theme: tauri::Theme,
 }
 
 pub struct Store {
@@ -131,7 +133,12 @@ impl Store {
             })
             .collect();
 
-        Snapshot { accounts, settings: settings.clone(), version: crate::VERSION }
+        Snapshot {
+            accounts,
+            settings: settings.clone(),
+            version: crate::VERSION,
+            system_theme: crate::settings::system_theme(),
+        }
     }
 
     fn interval_ms(&self, provider: Provider, settings: &Settings, now: i64) -> i64 {

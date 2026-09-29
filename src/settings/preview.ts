@@ -170,6 +170,10 @@ export function preview(): Preview {
     element.classList.toggle("empty", accounts.length === 0);
     element.classList.toggle("hidden-panel", accounts.length > 0 && !settings.panelVisible);
     note.textContent = accounts.length === 0 ? t("previewEmpty") : settings.panelVisible ? "" : t("previewHidden");
+    // The page's theme, or dark when the rail is kept dark. Left to follow
+    // the page, it changes with it rather than a moment before.
+    if (settings.railStaysDark) rail.dataset.railTheme = "dark";
+    else delete rail.dataset.railTheme;
     renderRail(accounts, snapshot);
     renderLegend(accounts, snapshot);
   }

@@ -5,12 +5,14 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { Moon, Sun } from "lucide";
 
 import { relative } from "../shared/format";
 import { locale, t, type StringKey } from "../shared/i18n";
+import { pageScheme } from "../shared/theme";
 import type { SettingsPatch, Snapshot, UpdateInfo } from "../shared/types";
 import { about } from "./about";
-import { arrowKeys, brandMark, button, check, el, slidingThumb, soonBadge } from "./dom";
+import { arrowKeys, brandMark, button, check, el, icon, reducedMotion, slidingThumb, soonBadge } from "./dom";
 import { general } from "./general";
 import { alertsPage, shortcutsPage } from "./soon";
 import "@fontsource-variable/manrope";
@@ -110,7 +112,16 @@ const devTag = el("span", "dev-tag", "Dev");
 const syncText = el("span", "sync-text");
 const sync = el("div", "sync", el("span", "sync-dot"), syncText);
 sync.setAttribute("aria-live", "polite");
-document.querySelector("header")!.append(el("div", "brand", brandMark(18, 3.6, 4), el("span", "brand-name", "Pulse"), devTag), tablist, sync);
+// Light or dark in a click, whichever the page isn't in now.
+const themeSwitch = button("theme-switch");
+themeSwitch.addEventListener("click", () => update({ theme: pageScheme(snapshot) === "dark" ? "light" : "dark" }));
+document
+  .querySelector("header")!
+  .append(
+    el("div", "brand", brandMark(18, 3.6, 4), el("span", "brand-name", "Pulse"), devTag),
+    tablist,
+    el("div", "bar-end", sync, el("span", "bar-divider"), themeSwitch),
+  );
 
 const main = document.querySelector("main")!;
 main.append(...pages.map((page) => page.element));
@@ -158,7 +169,30 @@ function renderSync() {
   sync.title = text;
 }
 
+/**
+ * The theme the page is in, and the switch showing it: a moon while dark, a
+ * sun while light. A change cross-fades the whole window rather than letting
+ * each part change at its own pace.
+ */
+function applyTheme() {
+  const root = document.documentElement;
+  const scheme = pageScheme(snapshot);
+  if (root.dataset.theme === scheme) return;
+  const first = root.dataset.theme === undefined;
+  const change = () => {
+    root.dataset.theme = scheme;
+    themeSwitch.classList.toggle("turned", !first);
+    themeSwitch.replaceChildren(icon(scheme === "dark" ? Moon : Sun, 14));
+    const label = t(scheme === "dark" ? "toLightTheme" : "toDarkTheme");
+    themeSwitch.setAttribute("aria-label", label);
+    themeSwitch.title = label;
+  };
+  if (first || reducedMotion.matches) change();
+  else document.startViewTransition(change);
+}
+
 function render() {
+  applyTheme();
   devTag.hidden = !snapshot.version.endsWith("-dev");
   generalPage.apply(snapshot);
   aboutPage.apply(snapshot);

@@ -1,11 +1,37 @@
-/* One service on the rail (`rail.ts`): what sits inside a ring and under it.
-   The panel and the preview in Settings both draw it; where each item goes
-   is the page's own business. */
+/* One service on the rail (`rail.ts`): what sits inside a ring and under it,
+   and the colours it is drawn in. The panel and the preview in Settings both
+   draw it; where each item goes is the page's own business. */
+
+/* The rail's colours, light or dark by the `color-scheme` where each is
+   used rather than where it is set: the panel is all rail, while in Settings
+   the preview's box can be dark on a light page. */
+:root {
+  --rail-surface: light-dark(#fff, #000);
+  --rail-hairline: light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.09));
+  --rail-track: light-dark(#efebe5, rgb(255 255 255 / 0.14));
+  --rail-mark: light-dark(#1c1a17, #fff);
+  --rail-text: light-dark(#1c1a17, rgb(255 255 255 / 0.94));
+  --rail-text-secondary: light-dark(#6f6a62, rgb(255 255 255 / 0.52));
+  --rail-text-tertiary: light-dark(#9a948b, rgb(255 255 255 / 0.4));
+  --rail-turning: light-dark(rgb(28 26 23 / 0.7), rgb(255 255 255 / 0.85));
+  /* A limit's colour, and red past the line (`tint` in format.ts). */
+  --rail-five-hour: light-dark(#f0652f, #ff7a45);
+  --rail-weekly: light-dark(#8b73f0, #b9a6ff);
+  --rail-warning: light-dark(#e5484d, rgb(255 79 66));
+  --rail-spent: rgb(217 23 33);
+}
+
+/* A rail or a card of it, in the theme the rail has. */
+[data-rail-theme="light"] {
+  color-scheme: light;
+}
+
+[data-rail-theme="dark"] {
+  color-scheme: dark;
+}
 
 .rail-face {
   font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --rail-text: rgba(255, 255, 255, 0.94);
-  --rail-text-secondary: rgba(255, 255, 255, 0.52);
 }
 
 .rail-face .item {
@@ -42,6 +68,10 @@
   overflow: visible;
 }
 
+.rail-face .ring .track {
+  stroke: var(--rail-track);
+}
+
 .rail-face .ring .usage {
   transition: stroke-dasharray 0.35s ease, stroke 0.35s ease, opacity 0.2s ease;
 }
@@ -51,6 +81,7 @@
 }
 
 .rail-face .ring .turning {
+  stroke: var(--rail-turning);
   transform-origin: 20px 20px;
   animation: rail-turn 1s linear infinite;
 }
@@ -67,7 +98,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--rail-mark);
 }
 
 .rail-face .label {

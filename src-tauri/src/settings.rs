@@ -46,6 +46,11 @@ pub struct Settings {
     pub tucks_away: bool,
     /// Hovering a ring opens its card. Off, the rail is only the rings.
     pub shows_card: bool,
+    /// Light or dark, for Settings and the rail.
+    #[serde(deserialize_with = "or_default")]
+    pub theme: Theme,
+    /// Light, the rail can stay dark anyway: dark reads over any wallpaper.
+    pub rail_stays_dark: bool,
     /// Launch at login is on by default and decided **once**: a reader who
     /// turned it off is never turned back on by a later launch.
     pub login_item_decided: bool,
@@ -73,6 +78,8 @@ impl Default for Settings {
             rail_dock: None,
             tucks_away: false,
             shows_card: true,
+            theme: Theme::default(),
+            rail_stays_dark: false,
             login_item_decided: false,
             checks_for_updates: true,
             update_announced: None,
@@ -118,6 +125,69 @@ impl RingShows {
             }
         }
     }
+}
+
+/// Light or dark. One choice for Settings and the rail.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Theme {
+    /// Whichever Windows is set to for apps, following it when it changes.
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+impl Theme {
+    /// What a window is told: nothing for System, so that it follows Windows.
+    pub fn for_window(self) -> Option<tauri::Theme> {
+        match self {
+            Theme::System => None,
+            Theme::Light => Some(tauri::Theme::Light),
+            Theme::Dark => Some(tauri::Theme::Dark),
+        }
+    }
+
+    /// Light or dark, System settled by asking Windows.
+    pub fn resolved(self) -> tauri::Theme {
+        self.for_window().unwrap_or_else(system_theme)
+    }
+}
+
+/// The light-or-dark choice Windows has for apps. Unset is light, as on a
+/// fresh install. A page can't ask its WebView instead: the WebView's
+/// `prefers-color-scheme` is shared by every window, and follows whichever
+/// window last had its theme set.
+#[cfg(windows)]
+pub fn system_theme() -> tauri::Theme {
+    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD};
+    let wide = |text: &str| text.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (key, value) = (wide(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"), wide("AppsUseLightTheme"));
+    let mut light: u32 = 1;
+    let mut size = std::mem::size_of::<u32>() as u32;
+    // SAFETY: both names are NUL-terminated and outlive the call, and `size`
+    // is the size of the buffer `light` gives it.
+    let status = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            key.as_ptr(),
+            value.as_ptr(),
+            RRF_RT_REG_DWORD,
+            std::ptr::null_mut(),
+            (&mut light as *mut u32).cast(),
+            &mut size,
+        )
+    };
+    if status == 0 && light == 0 {
+        tauri::Theme::Dark
+    } else {
+        tauri::Theme::Light
+    }
+}
+
+#[cfg(not(windows))]
+pub fn system_theme() -> tauri::Theme {
+    tauri::Theme::Light
 }
 
 /// The choices Settings offers for where red begins. A short list, not a
@@ -201,7 +271,28 @@ mod tests {
         assert!(!settings.tucks_away);
         // And one from before the card could be switched off shows it.
         assert!(settings.shows_card);
+        // One from before light mode follows Windows, the rail included.
+        assert_eq!(settings.theme, Theme::System);
+        assert!(!settings.rail_stays_dark);
         assert_eq!(settings.update_announced, None);
+    }
+
+    #[test]
+    fn an_unknown_theme_is_the_default_not_fatal() {
+        let settings: Settings = serde_json::from_str(r#"{ "hasChosen": true, "theme": "sepia" }"#).unwrap();
+        assert!(settings.has_chosen);
+        assert_eq!(settings.theme, Theme::System);
+
+        let settings: Settings = serde_json::from_str(r#"{ "theme": "light", "railStaysDark": true }"#).unwrap();
+        assert_eq!(settings.theme, Theme::Light);
+        assert!(settings.rail_stays_dark);
+    }
+
+    #[test]
+    fn a_chosen_theme_is_what_the_window_is_told() {
+        assert_eq!(Theme::System.for_window(), None);
+        assert_eq!(Theme::Light.for_window(), Some(tauri::Theme::Light));
+        assert_eq!(Theme::Dark.resolved(), tauri::Theme::Dark);
     }
 
     #[test]

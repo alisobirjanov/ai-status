@@ -1,34 +1,62 @@
-/* The settings window, after the design in `ai-status-redesign.pen`. Dark
-   whatever Windows is set to. The accent marks what is chosen; on the rail
-   and in its legend, colour still means how close a limit is. */
+/* The settings window, after the design in `ai-status-redesign.pen`, light
+   or dark. The accent marks what is chosen; on the rail and in its legend,
+   colour still means how close a limit is.
+
+   Every colour is written light first, then dark. Which one shows is the
+   `color-scheme` where it is used: the page's comes from the theme Rust
+   sends (`main.ts`), because the WebView's own `prefers-color-scheme` is
+   shared with the panel and can't be trusted. Until the page knows, it
+   goes by that guess, which Rust has made right for this window. */
 
 :root {
-  color-scheme: dark;
-  --bg: #121110;
-  --stage: #171614;
-  --card: #1b1a18;
-  --tile: #161513;
-  --well: #141311;
-  --raised: #262421;
-  --active: #2c2a27;
-  --line: #2a2825;
-  --line-strong: #3a3631;
-  --track: #34312d;
-  --bar-off: #3a3631;
-  --text: #f3efea;
-  --text-soft: #d6d0c9;
-  --text-2: #9c968f;
-  --text-3: #6b665f;
-  --accent: #ff7a45;
-  --weekly: #b9a6ff;
-  --good: #7bd88f;
-  --caution: #ffc226;
-  --danger: #ff5a4a;
-  --danger-text: #ff6b5e;
+  color-scheme: light dark;
+  --bg: light-dark(#f7f5f2, #121110);
+  --stage: light-dark(#fdfcfa, #171614);
+  --card: light-dark(#fff, #1b1a18);
+  --tile: light-dark(#faf8f5, #161513);
+  --well: light-dark(#f5f2ee, #141311);
+  --raised: light-dark(#f1ede7, #262421);
+  --raised-hover: light-dark(#e9e4dd, #2c2a27);
+  /* Under the chosen tab or segment. */
+  --active: light-dark(#fff, #2c2a27);
+  --tabs: light-dark(#ece8e2, #1b1a18);
+  --line: light-dark(#e7e2db, #2a2825);
+  --line-strong: light-dark(#d6d0c7, #3a3631);
+  --track: light-dark(#e6e1da, #34312d);
+  --bar-off: light-dark(#e6e1da, #3a3631);
+  --text: light-dark(#1c1a17, #f3efea);
+  --text-soft: light-dark(#3d3934, #d6d0c9);
+  --text-2: light-dark(#6f6a62, #9c968f);
+  --text-3: light-dark(#9a948b, #6b665f);
+  /* The rail's 5-hour and weekly colours (`rail.css`). */
+  --accent: light-dark(#f0652f, #ff7a45);
+  --accent-hover: light-dark(#e0561f, #ff8c5c);
+  --accent-wash: light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.12));
+  --on-accent: light-dark(#fff, #1c0f09);
+  --weekly: light-dark(#8b73f0, #b9a6ff);
+  --good: light-dark(#2fa84f, #7bd88f);
+  --caution: light-dark(#d99a00, #ffc226);
+  --danger: light-dark(#e5484d, #ff5a4a);
+  --danger-text: light-dark(#d93b3f, #ff6b5e);
+  --on-danger: light-dark(#fff, #1c0d0b);
+  --button: light-dark(#faf8f5, #1b1a18);
+  --toggle-off: light-dark(#ddd8d0, #2c2a27);
+  --knob: light-dark(#fff, #8a847d);
+  --knob-on: light-dark(#fff, #121110);
+  --radio: light-dark(#c9c3ba, #4a4640);
+  --scrollbar: light-dark(#d6d0c7, #2c2a27);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --sans: "Manrope Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --display: "Bricolage Grotesque Variable", "Manrope Variable", "Segoe UI Variable Display", "Segoe UI", sans-serif;
   --mono: "JetBrains Mono Variable", "Cascadia Mono", Consolas, monospace;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 html,
@@ -149,12 +177,12 @@ svg.spin {
 
 .dev-tag {
   color: var(--weekly);
-  background: rgb(185 166 255 / 0.14);
+  background: light-dark(rgb(139 115 240 / 0.1), rgb(185 166 255 / 0.14));
 }
 
 .soon-badge {
   color: var(--accent);
-  background: rgb(255 122 69 / 0.12);
+  background: var(--accent-wash);
 }
 
 .tabs {
@@ -163,7 +191,7 @@ svg.spin {
   gap: 2px;
   padding: 4px;
   border-radius: 999px;
-  background: var(--card);
+  background: var(--tabs);
 }
 
 .tab-thumb,
@@ -172,7 +200,10 @@ svg.spin {
   left: 0;
   border-radius: 999px;
   background: var(--active);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  /* One shadow for each theme, the other's transparent. */
+  box-shadow:
+    0 1px 2px light-dark(transparent, rgb(0 0 0 / 0.3)),
+    0 1px 3px light-dark(rgb(0 0 0 / 0.1), transparent);
   transition:
     transform 0.4s var(--ease),
     width 0.4s var(--ease),
@@ -235,14 +266,61 @@ svg.spin {
   background: var(--accent);
 }
 
-.sync {
+.bar-end {
   justify-self: end;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync {
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
   color: var(--text-2);
+}
+
+.bar-divider {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.theme-switch {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+
+.theme-switch:hover {
+  background: var(--raised);
+  border-color: var(--line-strong);
+}
+
+.theme-switch.turned svg {
+  animation: theme-in 0.4s var(--ease);
+}
+
+@keyframes theme-in {
+  from {
+    opacity: 0;
+    transform: rotate(-60deg) scale(0.6);
+  }
 }
 
 .sync-text {
@@ -281,7 +359,7 @@ main {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--active) transparent;
+  scrollbar-color: var(--scrollbar) transparent;
 }
 
 .page {
@@ -321,7 +399,7 @@ main {
   border: 1px solid var(--line);
   border-radius: 20px;
   background:
-    radial-gradient(120% 70% at 50% 30%, rgb(255 122 69 / 0.13), transparent 70%),
+    radial-gradient(120% 70% at 50% 30%, light-dark(rgb(240 101 47 / 0.11), rgb(255 122 69 / 0.13)), transparent 70%),
     var(--stage);
 }
 
@@ -412,9 +490,9 @@ main {
   align-items: flex-start;
   gap: 14px;
   padding: 18px 20px;
-  border: 1px solid rgb(255 122 69 / 0.25);
+  border: 1px solid light-dark(rgb(240 101 47 / 0.3), rgb(255 122 69 / 0.25));
   border-radius: 16px;
-  background: rgb(255 122 69 / 0.07);
+  background: light-dark(rgb(240 101 47 / 0.06), rgb(255 122 69 / 0.07));
 }
 
 .callout-icon {
@@ -433,7 +511,7 @@ main {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: var(--active);
+  background: var(--toggle-off);
   transition:
     background-color 0.25s,
     opacity 0.2s;
@@ -446,7 +524,8 @@ main {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #8a847d;
+  background: var(--knob);
+  box-shadow: 0 1px 3px light-dark(rgb(0 0 0 / 0.18), transparent);
   transition:
     transform 0.3s var(--ease),
     background-color 0.25s;
@@ -458,7 +537,7 @@ main {
 
 .toggle[aria-checked="true"] .knob {
   transform: translateX(16px);
-  background: var(--bg);
+  background: var(--knob-on);
 }
 
 .toggle:disabled {
@@ -526,7 +605,7 @@ main {
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--card);
+  background: var(--button);
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
@@ -553,7 +632,7 @@ main {
 }
 
 .button.danger {
-  border-color: rgb(255 90 74 / 0.33);
+  border-color: light-dark(rgb(229 72 77 / 0.33), rgb(255 90 74 / 0.33));
   color: var(--danger-text);
 }
 
@@ -562,15 +641,15 @@ main {
 }
 
 .button.danger:hover:not(:disabled) {
-  background: rgb(255 90 74 / 0.08);
-  border-color: rgb(255 90 74 / 0.5);
+  background: light-dark(rgb(229 72 77 / 0.07), rgb(255 90 74 / 0.08));
+  border-color: light-dark(rgb(229 72 77 / 0.5), rgb(255 90 74 / 0.5));
 }
 
 .button.danger.armed,
 .button.danger.armed:hover {
   background: var(--danger);
   border-color: var(--danger);
-  color: #1c0d0b;
+  color: var(--on-danger);
 }
 
 .link-button {
@@ -608,7 +687,7 @@ main {
 }
 
 .icon-button:hover:not(:disabled) {
-  background: var(--active);
+  background: var(--raised-hover);
   color: var(--text);
 }
 
@@ -763,16 +842,21 @@ main {
   justify-content: center;
 }
 
+/* In the rail's theme, which `preview.ts` gives it: dark on a light page
+   when the rail is kept dark. */
 .preview-rail {
   position: relative;
   flex: none;
   width: 64px;
   border-radius: 32px;
-  background: #000;
+  background: var(--rail-surface);
   box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.09),
-    0 20px 40px rgb(0 0 0 / 0.5);
-  transition: opacity 0.3s;
+    0 0 0 1px var(--rail-hairline),
+    0 20px 40px light-dark(rgb(28 26 23 / 0.2), rgb(0 0 0 / 0.5));
+  transition:
+    opacity 0.3s,
+    background-color 0.3s,
+    box-shadow 0.3s;
 }
 
 .preview-rail .item {
@@ -870,7 +954,7 @@ main {
 }
 
 .legend-figure.spent {
-  color: rgb(217 23 33);
+  color: var(--rail-spent);
 }
 
 .stage-hint {
@@ -879,7 +963,7 @@ main {
   gap: 10px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgb(255 255 255 / 0.03);
+  background: light-dark(#f3f0eb, rgb(255 255 255 / 0.03));
   font-size: 12px;
   line-height: 1.45;
   color: var(--text-2);
@@ -903,7 +987,7 @@ main {
 }
 
 .service.on {
-  border-color: rgb(255 122 69 / 0.35);
+  border-color: light-dark(rgb(240 101 47 / 0.33), rgb(255 122 69 / 0.35));
 }
 
 .service-head {
@@ -937,7 +1021,7 @@ main {
 }
 
 .service.on .glyph {
-  background: rgb(255 122 69 / 0.14);
+  background: light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.14));
   color: var(--accent);
 }
 
@@ -1077,15 +1161,17 @@ main {
     box-shadow 0.25s;
 }
 
-.ring-option:hover {
+.ring-option:hover,
+.theme-option:hover {
   border-color: var(--line-strong);
   color: var(--text);
 }
 
-.ring-option[aria-checked="true"] {
+.ring-option[aria-checked="true"],
+.theme-option[aria-checked="true"] {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 0.5px var(--accent);
-  background: rgb(255 122 69 / 0.07);
+  background: light-dark(rgb(240 101 47 / 0.06), rgb(255 122 69 / 0.07));
   color: var(--text);
   font-weight: 700;
 }
@@ -1093,6 +1179,189 @@ main {
 .ring-glyph {
   flex: none;
   overflow: visible;
+}
+
+/* Appearance: a tile for each theme, with this window drawn small in it. */
+.appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.appearance .row {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--tile);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    border-color 0.25s,
+    background-color 0.25s,
+    color 0.25s,
+    box-shadow 0.25s;
+}
+
+.theme-thumb {
+  position: relative;
+  height: 88px;
+  display: flex;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+/* The frame, over the drawing rather than under it. */
+.theme-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.08));
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* The tabs, the stage and three cards, in the colours of the theme each
+   drawing is — whichever theme the page is in. System is half of each. */
+.mini {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg);
+  --mini-line: light-dark(#e4dfd7, #34312d);
+}
+
+.mini.light {
+  color-scheme: light;
+}
+
+.mini.dark {
+  color-scheme: dark;
+}
+
+.mini-tabs {
+  flex: none;
+  align-self: center;
+  width: 34px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--mini-line);
+}
+
+.mini-row {
+  position: relative;
+  flex: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.mini-stage,
+.mini-card {
+  box-sizing: border-box;
+  border: 0.5px solid var(--mini-line);
+  background: var(--card);
+}
+
+.mini-stage {
+  flex: none;
+  width: 20px;
+  border-radius: 4px;
+}
+
+.mini-cards {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mini-card {
+  flex: 1;
+  border-radius: 3px;
+}
+
+.mini-arc {
+  position: absolute;
+  left: 4px;
+  top: 6px;
+}
+
+.mini-arc circle {
+  stroke: var(--accent);
+}
+
+.theme-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 2px;
+}
+
+.theme-label svg {
+  flex: none;
+  transition: color 0.25s;
+}
+
+.theme-option[aria-checked="true"] .theme-label svg {
+  color: var(--accent);
+}
+
+.theme-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radio {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--radio);
+  border-radius: 50%;
+  transition: border-color 0.25s;
+}
+
+.radio::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: scale(0);
+  transition: transform 0.3s var(--ease);
+}
+
+.theme-option[aria-checked="true"] .radio {
+  border-color: var(--accent);
+}
+
+.theme-option[aria-checked="true"] .radio::after {
+  transform: scale(1);
 }
 
 .threshold {
@@ -1142,7 +1411,7 @@ main {
 }
 
 .step.above .bar {
-  background: rgb(255 90 74 / 0.4);
+  background: light-dark(rgb(229 72 77 / 0.3), rgb(255 90 74 / 0.4));
 }
 
 .step.at .bar {
@@ -1183,9 +1452,9 @@ main {
   margin-bottom: 22px;
   display: grid;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.06);
+  border: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.06));
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 122 69 / 0.1), transparent 70%);
+  background: radial-gradient(circle, light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.1)), transparent 70%);
 }
 
 .about-name {
@@ -1218,22 +1487,22 @@ main {
 }
 
 .status-pill.good {
-  background: rgb(123 216 143 / 0.1);
+  background: light-dark(rgb(47 168 79 / 0.08), rgb(123 216 143 / 0.1));
   color: var(--good);
 }
 
 .status-pill.accent {
-  background: rgb(255 122 69 / 0.12);
+  background: var(--accent-wash);
   color: var(--accent);
 }
 
 .status-pill.muted {
-  background: rgb(255 255 255 / 0.05);
+  background: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.05));
   color: var(--text-2);
 }
 
 .status-pill.danger {
-  background: rgb(255 90 74 / 0.12);
+  background: light-dark(rgb(229 72 77 / 0.1), rgb(255 90 74 / 0.12));
   color: var(--danger-text);
 }
 
@@ -1252,7 +1521,7 @@ main {
   border: 0;
   border-radius: 12px;
   background: var(--accent);
-  color: #1c0f09;
+  color: var(--on-accent);
   font-size: 14px;
   font-weight: 700;
   transition:
@@ -1262,7 +1531,7 @@ main {
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #ff8c5c;
+  background: var(--accent-hover);
 }
 
 .primary-button:active:not(:disabled) {
@@ -1350,13 +1619,13 @@ main {
 .tag {
   padding: 4px 7px;
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.06);
+  background: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.06));
   color: var(--text-2);
   font: 600 11px/1 var(--sans);
 }
 
 .tag.new {
-  background: rgb(255 122 69 / 0.12);
+  background: var(--accent-wash);
   color: var(--accent);
 }
 
@@ -1474,9 +1743,9 @@ main {
   align-items: flex-start;
   gap: 14px;
   padding: 16px 20px;
-  border: 1px dashed rgb(255 122 69 / 0.45);
+  border: 1px dashed light-dark(rgb(240 101 47 / 0.45), rgb(255 122 69 / 0.45));
   border-radius: 16px;
-  background: rgb(255 122 69 / 0.06);
+  background: light-dark(rgb(240 101 47 / 0.05), rgb(255 122 69 / 0.06));
 }
 
 .soon-banner-icon {
@@ -1501,10 +1770,10 @@ main {
   display: flex;
   gap: 14px;
   padding: 16px;
-  border: 1px solid rgb(255 255 255 / 0.06);
+  border: 1px solid light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.06));
   border-radius: 14px;
-  background: #24221f;
-  box-shadow: 0 16px 32px rgb(0 0 0 / 0.35);
+  background: light-dark(#fff, #24221f);
+  box-shadow: 0 16px 32px light-dark(rgb(28 26 23 / 0.13), rgb(0 0 0 / 0.35));
 }
 
 .toast-text {
@@ -1543,10 +1812,10 @@ main {
   0%,
   70%,
   100% {
-    box-shadow: 0 0 0 10px rgb(255 122 69 / 0.06);
+    box-shadow: 0 0 0 10px light-dark(rgb(240 101 47 / 0.08), rgb(255 122 69 / 0.06));
   }
   80% {
-    box-shadow: 0 0 0 18px rgb(255 122 69 / 0.14);
+    box-shadow: 0 0 0 18px light-dark(rgb(240 101 47 / 0.16), rgb(255 122 69 / 0.14));
   }
 }
 
@@ -1556,8 +1825,8 @@ main {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 122 69 / 0.18), transparent 70%);
-  box-shadow: 0 0 0 10px rgb(255 122 69 / 0.06);
+  background: radial-gradient(circle, light-dark(rgb(240 101 47 / 0.16), rgb(255 122 69 / 0.18)), transparent 70%);
+  box-shadow: 0 0 0 10px light-dark(rgb(240 101 47 / 0.08), rgb(255 122 69 / 0.06));
   animation: flash 3.2s var(--ease) infinite;
 }
 
@@ -1634,19 +1903,20 @@ main {
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
+  background: light-dark(#faf8f5, transparent);
   font: 400 12px/1 var(--mono);
   color: var(--text-2);
 }
 
 .chip.on.five {
   border-color: var(--accent);
-  background: rgb(255 122 69 / 0.1);
+  background: light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.1));
   color: var(--text);
 }
 
 .chip.on.week {
   border-color: var(--weekly);
-  background: rgb(185 166 255 / 0.1);
+  background: light-dark(rgb(139 115 240 / 0.1), rgb(185 166 255 / 0.1));
   color: var(--text);
 }
 
@@ -1711,13 +1981,14 @@ main {
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 10px;
+  background: var(--tile);
   font-size: 13px;
   color: var(--text-3);
 }
 
 .day.on {
-  border-color: transparent;
-  background: var(--raised);
+  border-color: light-dark(var(--line), rgb(255 255 255 / 0.08));
+  background: var(--active);
   color: var(--text);
 }
 
@@ -1741,16 +2012,17 @@ main {
   padding: 0 16px;
   display: grid;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.08);
+  border: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.08));
   border-bottom-width: 4px;
   border-radius: 14px;
-  background: #0d0c0b;
+  background: light-dark(#fff, #0d0c0b);
+  box-shadow: 0 12px 24px light-dark(rgb(28 26 23 / 0.12), transparent);
   font: 600 22px/1 var(--display);
 }
 
 .big-key.live {
   border-color: var(--accent);
-  background: rgb(255 122 69 / 0.1);
+  background: light-dark(rgb(240 101 47 / 0.08), rgb(255 122 69 / 0.1));
 }
 
 .key-plus {
@@ -1764,7 +2036,7 @@ main {
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  background: rgb(255 122 69 / 0.12);
+  background: var(--accent-wash);
   color: var(--accent);
   font-size: 13px;
   font-weight: 600;
@@ -1791,9 +2063,9 @@ main {
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border: 1px solid rgb(123 216 143 / 0.25);
+  border: 1px solid light-dark(rgb(47 168 79 / 0.25), rgb(123 216 143 / 0.25));
   border-radius: 12px;
-  background: rgb(123 216 143 / 0.06);
+  background: light-dark(rgb(47 168 79 / 0.06), rgb(123 216 143 / 0.06));
   font-size: 13px;
   color: var(--text-soft);
 }
@@ -1820,10 +2092,10 @@ main {
 kbd {
   justify-self: start;
   padding: 4px 8px;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  border: 1px solid light-dark(#e6e1da, rgb(255 255 255 / 0.12));
   border-bottom-width: 2px;
   border-radius: 6px;
-  background: #0d0c0b;
+  background: light-dark(#f5f2ee, #0d0c0b);
   color: var(--text);
   font: 600 11px/1.2 var(--mono);
 }
@@ -1845,8 +2117,8 @@ kbd {
 }
 
 .shortcut.recording {
-  border-color: rgb(255 122 69 / 0.4);
-  background: rgb(255 122 69 / 0.06);
+  border-color: light-dark(rgb(240 101 47 / 0.4), rgb(255 122 69 / 0.4));
+  background: light-dark(rgb(240 101 47 / 0.05), rgb(255 122 69 / 0.06));
 }
 
 .shortcut > .heading {
@@ -1865,7 +2137,7 @@ kbd {
 }
 
 .shortcut.recording .shortcut-glyph {
-  background: rgb(255 122 69 / 0.14);
+  background: light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.14));
   color: var(--accent);
 }
 

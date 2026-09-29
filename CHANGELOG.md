@@ -4,6 +4,22 @@ Each release needs an entry here before it is tagged: the release workflow
 refuses a tag without one, and its words are what installed copies show when
 they offer the update. Russian first, then English.
 
+## 0.1.4
+
+**Русский**
+
+- Светлая тема. В настройках, в «Основных», появился раздел «Оформление» с выбором темы: «Системная», «Светлая» или «Тёмная». Ей следуют окно настроек, панель и её карточка.
+- «Системная» повторяет светлый или тёмный режим Windows и меняется вместе с ним. Она выбрана по умолчанию: если Windows в светлом режиме, после обновления Pulse станет светлым. Чтобы он остался тёмным, выберите «Тёмная».
+- Кнопка с солнцем или луной в правом верхнем углу настроек переключает тему со светлой на тёмную и обратно одним щелчком.
+- С переключателем «Оставлять панель тёмной» панель и её карточка в светлой теме остаются тёмными — так их видно на любых обоях. По умолчанию он выключен.
+
+**English**
+
+- Light mode. Settings > General has a new "Appearance" section with a choice of theme: System, Light or Dark. Settings, the panel and its card all follow it.
+- System follows Windows' light or dark mode and changes when Windows does. It's the default, so if Windows is in light mode, Pulse turns light with this update. To keep it dark, pick Dark.
+- A button with a sun or moon at the top right of Settings switches between light and dark in one click.
+- "Keep the rail dark" leaves the panel and its card dark in light mode, so they read over any wallpaper. It's off by default.
+
 ## 0.1.3
 
 **Русский**

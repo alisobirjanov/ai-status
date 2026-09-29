@@ -26,7 +26,7 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 use model::Provider;
 use panel::{Layout, PanelState, Rect};
-use settings::{RingShows, Settings};
+use settings::{RingShows, Settings, Theme};
 use store::{AppState, Snapshot, Store};
 
 const SETTINGS_LABEL: &str = "settings";
@@ -74,6 +74,8 @@ struct SettingsPatch {
     panel_visible: Option<bool>,
     tucks_away: Option<bool>,
     shows_card: Option<bool>,
+    theme: Option<Theme>,
+    rail_stays_dark: Option<bool>,
     checks_for_updates: Option<bool>,
 }
 
@@ -93,6 +95,8 @@ impl SettingsPatch {
             panel_visible: Some(defaults.panel_visible),
             tucks_away: Some(defaults.tucks_away),
             shows_card: Some(defaults.shows_card),
+            theme: Some(defaults.theme),
+            rail_stays_dark: Some(defaults.rail_stays_dark),
             checks_for_updates: Some(defaults.checks_for_updates),
         }
     }
@@ -133,6 +137,12 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
     if let Some(card) = patch.shows_card {
         settings.shows_card = card;
     }
+    if let Some(theme) = patch.theme {
+        settings.theme = theme;
+    }
+    if let Some(dark) = patch.rail_stays_dark {
+        settings.rail_stays_dark = dark;
+    }
     if let Some(checks) = patch.checks_for_updates {
         settings.checks_for_updates = checks;
     }
@@ -171,6 +181,12 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
     if new.panel_visible && !old.panel_visible {
         // The panel coming back is a reason to look now.
         ask = new.enabled.clone();
+    }
+    if new.theme != old.theme {
+        if let Some(window) = app.get_webview_window(SETTINGS_LABEL) {
+            let _ = window.set_theme(new.theme.for_window());
+            let _ = window.set_background_color(Some(settings_background(new.theme)));
+        }
     }
     store::emit_snapshot(&app);
     store::refresh(&app, &ask);
@@ -300,18 +316,29 @@ fn show_settings(app: &AppHandle) {
         let _ = window.set_focus();
         return;
     }
+    let theme = app.state::<AppState>().settings.lock().unwrap().theme;
     let _ = WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("settings.html".into()))
         .title(i18n::text("settingsTitle"))
-        // The page is dark whatever Windows is set to, so its title bar is
-        // too, and so is the window before the page has painted.
-        .theme(Some(tauri::Theme::Dark))
-        .background_color(tauri::window::Color(0x12, 0x11, 0x10, 0xff))
+        // The title bar in the page's theme, and the window too before the
+        // page has painted.
+        .theme(theme.for_window())
+        .background_color(settings_background(theme))
         .inner_size(1120.0, 880.0)
         .min_inner_size(760.0, 560.0)
         // Smaller on a small screen rather than past its edges.
         .prevent_overflow_with_margin(tauri::LogicalSize::new(32.0, 32.0))
         .center()
         .build();
+}
+
+/// The page's own background, for the moment before it paints and for the
+/// edge a quick resize uncovers.
+fn settings_background(theme: Theme) -> tauri::window::Color {
+    if theme.resolved() == tauri::Theme::Dark {
+        tauri::window::Color(0x12, 0x11, 0x10, 0xff)
+    } else {
+        tauri::window::Color(0xf7, 0xf5, 0xf2, 0xff)
+    }
 }
 
 /// A web page in the browser, or a folder in Explorer.
@@ -394,6 +421,13 @@ pub fn run() {
             check_for_update,
             install_update,
         ])
+        // Windows switched between light and dark. Only a window left to
+        // follow it hears of it — the panel always is — and the pages are told.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::ThemeChanged(_) = event {
+                store::emit_snapshot(window.app_handle());
+            }
+        })
         .on_menu_event(|app, event| match event.id().as_ref() {
             "toggle-panel" => toggle_panel(app),
             "hide-panel" => update_settings(app.clone(), SettingsPatch { panel_visible: Some(false), ..Default::default() }),
@@ -482,6 +516,8 @@ mod tests {
             rail_dock: Some(panel::Side::Left),
             tucks_away: true,
             shows_card: false,
+            theme: Theme::Light,
+            rail_stays_dark: true,
             login_item_decided: true,
             checks_for_updates: false,
             update_announced: Some("0.2.0".into()),

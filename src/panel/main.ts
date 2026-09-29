@@ -16,6 +16,7 @@ import { colours, isSpent, percentText, reasonText, relative, resetText, shownFr
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
 import { RING, ringItem, shownWindows, svg } from "../shared/rail";
+import { railScheme } from "../shared/theme";
 import type { AccountView, Layout, Rect, Snapshot, UsageWindow } from "../shared/types";
 import "../shared/rail.css";
 import "./panel.css";
@@ -185,7 +186,8 @@ function alertColour(): string | null {
 }
 
 function drawSurface() {
-  if (!layout) return;
+  // Not before the first snapshot either: until then the theme isn't known.
+  if (!layout || !snapshot) return;
   const box = surfaceBox();
   surface.setAttribute("width", String(box.width));
   surface.setAttribute("height", String(box.height));
@@ -504,6 +506,8 @@ document.addEventListener("contextmenu", (event) => event.preventDefault());
 // MARK: - From Rust
 
 function render() {
+  // The whole page is the rail, card included.
+  if (snapshot) document.documentElement.dataset.railTheme = railScheme(snapshot);
   renderRail();
   drawSurface();
   renderCard();

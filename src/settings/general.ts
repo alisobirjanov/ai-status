@@ -1,14 +1,29 @@
 // General: the live preview beside what it previews — the services Pulse
-// reads, how the rail looks, and when Pulse looks.
+// reads, how the rail looks, when Pulse looks, and the theme it is all in.
 
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowRightToLine, ChevronDown, CircleAlert, Hourglass, Info, PanelRight, RotateCw, Sparkles, SquareMousePointer, Type } from "lucide";
+import {
+  ArrowRightToLine,
+  ChevronDown,
+  CircleAlert,
+  Hourglass,
+  Info,
+  Monitor,
+  Moon,
+  PanelRight,
+  RotateCw,
+  Sparkles,
+  SquareMousePointer,
+  Sun,
+  Type,
+  type IconNode,
+} from "lucide";
 
 import { reasonText, relative } from "../shared/format";
 import { icon as productMark } from "../shared/icons";
 import { t, type StringKey } from "../shared/i18n";
 import { svg } from "../shared/rail";
-import type { AccountView, CodexSource, Provider, RingShows, SettingsPatch, Snapshot } from "../shared/types";
+import type { AccountView, CodexSource, Provider, RingShows, Scheme, SettingsPatch, Snapshot, Theme } from "../shared/types";
 import {
   arc,
   arrowKeys,
@@ -41,6 +56,12 @@ const RING_CHOICES: [RingShows, StringKey][] = [
   ["bothSplit", "ringBothSplit"],
   ["bothStacked", "ringBothStacked"],
   ["bothNested", "ringBothNested"],
+];
+
+const THEME_CHOICES: [Theme, StringKey, IconNode][] = [
+  ["system", "themeSystem", Monitor],
+  ["light", "themeLight", Sun],
+  ["dark", "themeDark", Moon],
 ];
 
 // MARK: - Services
@@ -274,8 +295,43 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     el("article", "card rows", intervalRow, row(t("launchAtLogin"), t("launchAtLoginHint"), login.element)),
   );
 
-  const controls = el("div", "controls", services, panel, refresh);
-  [services, panel, refresh].forEach((part, index) => reveal(part, index + 1));
+  // Appearance
+
+  const themeButtons = new Map<Theme, HTMLButtonElement>();
+  const themeRow = el("div", "theme-options");
+  themeRow.setAttribute("role", "radiogroup");
+  themeRow.setAttribute("aria-label", t("theme"));
+  for (const [theme, key, glyph] of THEME_CHOICES) {
+    const option = button(
+      "theme-option",
+      themeThumb(theme),
+      el("span", "theme-label", icon(glyph, 14), el("span", "theme-name", t(key)), el("span", "radio")),
+    );
+    option.setAttribute("role", "radio");
+    option.addEventListener("click", () => {
+      if (snapshot?.settings.theme !== theme) update({ theme });
+    });
+    themeButtons.set(theme, option);
+    themeRow.append(option);
+  }
+  arrowKeys(themeRow, () => [...themeButtons.values()]);
+  const railDark = toggle(t("railStaysDark"), (on) => update({ railStaysDark: on }));
+
+  const appearance = el(
+    "section",
+    "section",
+    sectionHead(t("appearance"), t("appearanceNote")),
+    el(
+      "article",
+      "card appearance",
+      heading(t("theme"), t("themeHint")),
+      themeRow,
+      row(t("railStaysDark"), t("railStaysDarkHint"), railDark.element),
+    ),
+  );
+
+  const controls = el("div", "controls", services, panel, refresh, appearance);
+  [services, panel, refresh, appearance].forEach((part, index) => reveal(part, index + 1));
   const element = el("section", "page", reveal(stage.element, 0), controls);
 
   function apply(snap: Snapshot) {
@@ -283,7 +339,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     const settings = snap.settings;
 
     chooser.hidden = settings.hasChosen;
-    panel.hidden = refresh.hidden = !settings.hasChosen;
+    panel.hidden = refresh.hidden = appearance.hidden = !settings.hasChosen;
     for (const provider of PROVIDERS) {
       const account = snap.accounts.find((a) => a.provider === provider);
       let card = cards.get(provider);
@@ -322,6 +378,9 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     refreshAll.disabled = busy || settings.enabled.length === 0;
     refreshAll.classList.toggle("spinning", busy);
 
+    check(themeButtons.values(), themeButtons.get(settings.theme));
+    railDark.set(settings.railStaysDark);
+
     stage.apply(snap);
   }
 
@@ -337,6 +396,24 @@ export function general(update: (patch: SettingsPatch) => void): Page {
       stage.tick();
     },
   };
+}
+
+// MARK: - Theme thumbnails
+
+/** This window drawn small, in the colours a theme paints it. System is half of each. */
+function themeThumb(theme: Theme): HTMLElement {
+  const schemes: Scheme[] = theme === "system" ? ["light", "dark"] : [theme];
+  const thumb = el("span", "theme-thumb", ...schemes.map(mini));
+  thumb.setAttribute("aria-hidden", "true");
+  return thumb;
+}
+
+/** The tabs, the stage with an arc on it, and three cards. */
+function mini(scheme: Scheme): HTMLElement {
+  const accent = svg("svg", { class: "mini-arc", width: 12, height: 12, viewBox: "0 0 12 12" });
+  accent.append(arc(12, 4.8, -90, 200, { width: 2.4, round: false }));
+  const cards = el("span", "mini-cards", el("span", "mini-card"), el("span", "mini-card"), el("span", "mini-card"));
+  return el("span", `mini ${scheme}`, el("span", "mini-tabs"), el("span", "mini-row", el("span", "mini-stage"), cards, accent));
 }
 
 // MARK: - Ring glyphs
