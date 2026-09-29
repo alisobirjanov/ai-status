@@ -6,7 +6,10 @@
     <title>Pulse</title>
   </head>
   <body>
-    <svg id="surface" aria-hidden="true"><path /></svg>
+    <svg id="surface" aria-hidden="true">
+      <defs><clipPath id="edge-clip"><rect /></clipPath></defs>
+      <path />
+    </svg>
     <div id="rail" class="rail-face" role="list"></div>
     <div id="card" aria-live="polite"></div>
     <script type="module" src="/src/panel/main.ts"></script>

@@ -84,7 +84,7 @@ const english = {
   showPanel: "Show the panel",
   showPanelHint: "The tray icon shows and hides it.",
   tucksAway: "Tuck away at the edge",
-  tucksAwayHint: "Docked at a side of the screen, the panel shrinks to a sliver and slides out when you point at it. Off, it stays open.",
+  tucksAwayHint: "Docked at an edge of the screen, the panel shrinks to a sliver and slides out when you point at it. Off, it stays open.",
   showsCard: "Card on hover",
   showsCardHint: "Pointing at a ring opens every limit and when it resets.",
   limitLetters: "Letter the figures",
