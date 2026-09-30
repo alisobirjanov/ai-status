@@ -51,6 +51,11 @@ pub struct Settings {
     pub theme: Theme,
     /// Light, the rail can stay dark anyway: dark reads over any wallpaper.
     pub rail_stays_dark: bool,
+    /// The rail lets the desktop show through it. Its card stays solid: it is
+    /// there to be read.
+    pub glass: bool,
+    /// How much shows through, in percent: one of `GLASS_CHOICES`.
+    pub glass_transparency: u32,
     /// Launch at login is on by default and decided **once**: a reader who
     /// turned it off is never turned back on by a later launch.
     pub login_item_decided: bool,
@@ -80,6 +85,8 @@ impl Default for Settings {
             shows_card: true,
             theme: Theme::default(),
             rail_stays_dark: false,
+            glass: false,
+            glass_transparency: 50,
             login_item_decided: false,
             checks_for_updates: true,
             update_announced: None,
@@ -194,6 +201,7 @@ pub fn system_theme() -> tauri::Theme {
 /// slider: this is the one step in the colour language that means "pay
 /// attention", and every option sits above the yellow step at 50%.
 pub const WARNING_CHOICES: [u32; 6] = [60, 70, 75, 80, 85, 90];
+pub const GLASS_CHOICES: [u32; 3] = [25, 50, 75];
 
 impl Settings {
     fn file() -> std::path::PathBuf {
@@ -221,6 +229,9 @@ impl Settings {
         self.enabled.retain(|p| seen.insert(*p));
         if !WARNING_CHOICES.contains(&self.warning_at) {
             self.warning_at = 75;
+        }
+        if !GLASS_CHOICES.contains(&self.glass_transparency) {
+            self.glass_transparency = 50;
         }
         if let Some(minutes) = self.refresh_minutes {
             self.refresh_minutes = Some(minutes.clamp(1, 60));
@@ -274,7 +285,22 @@ mod tests {
         // One from before light mode follows Windows, the rail included.
         assert_eq!(settings.theme, Theme::System);
         assert!(!settings.rail_stays_dark);
+        // And one from before glass has a solid rail.
+        assert!(!settings.glass);
+        assert_eq!(settings.glass_transparency, 50);
         assert_eq!(settings.update_announced, None);
+    }
+
+    #[test]
+    fn glass_is_one_of_the_choices() {
+        let mut settings: Settings = serde_json::from_str(r#"{ "glass": true, "glassTransparency": 60 }"#).unwrap();
+        settings.normalize();
+        assert!(settings.glass);
+        assert_eq!(settings.glass_transparency, 50);
+
+        let mut settings: Settings = serde_json::from_str(r#"{ "glass": true, "glassTransparency": 75 }"#).unwrap();
+        settings.normalize();
+        assert_eq!(settings.glass_transparency, 75);
     }
 
     #[test]

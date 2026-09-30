@@ -46,6 +46,8 @@ import { preview } from "./preview";
 
 const PROVIDERS: Provider[] = ["claudeCode", "codex"];
 const INTERVALS = [0, 2, 5, 10, 15, 30];
+/** `GLASS_CHOICES` in `settings.rs`: how much of the desktop shows through, in percent. */
+const GLASS_CHOICES = [25, 50, 75];
 /** `WARNING_CHOICES` in `settings.rs`. */
 const WARNING_CHOICES = [60, 70, 75, 80, 85, 90];
 
@@ -316,6 +318,14 @@ export function general(update: (patch: SettingsPatch) => void): Page {
   }
   arrowKeys(themeRow, () => [...themeButtons.values()]);
   const railDark = toggle(t("railStaysDark"), (on) => update({ railStaysDark: on }));
+  const glass = toggle(t("glass"), (on) => update({ glass: on }));
+  const glassLevel = segmented<number>(
+    t("glassTransparency"),
+    GLASS_CHOICES.map((percent) => [percent, `${percent}%`]),
+    (percent) => update({ glassTransparency: percent }),
+  );
+  // Only glass has a transparency to choose.
+  const glassLevelRow = row(t("glassTransparency"), t("glassTransparencyHint"), glassLevel.element);
 
   const appearance = el(
     "section",
@@ -327,6 +337,8 @@ export function general(update: (patch: SettingsPatch) => void): Page {
       heading(t("theme"), t("themeHint")),
       themeRow,
       row(t("railStaysDark"), t("railStaysDarkHint"), railDark.element),
+      row(t("glass"), t("glassHint"), glass.element),
+      glassLevelRow,
     ),
   );
 
@@ -380,6 +392,9 @@ export function general(update: (patch: SettingsPatch) => void): Page {
 
     check(themeButtons.values(), themeButtons.get(settings.theme));
     railDark.set(settings.railStaysDark);
+    glass.set(settings.glass);
+    glassLevel.set(settings.glassTransparency);
+    glassLevelRow.hidden = !settings.glass;
 
     stage.apply(snap);
   }

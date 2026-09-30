@@ -78,6 +78,9 @@ export interface Settings {
   showsCard: boolean;
   theme: Theme;
   railStaysDark: boolean;
+  glass: boolean;
+  /** Percent: 25, 50 or 75. */
+  glassTransparency: number;
   checksForUpdates: boolean;
 }
 
@@ -137,6 +140,8 @@ export interface SettingsPatch {
   showsCard?: boolean;
   theme?: Theme;
   railStaysDark?: boolean;
+  glass?: boolean;
+  glassTransparency?: number;
   checksForUpdates?: boolean;
 }
 

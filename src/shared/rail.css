@@ -7,7 +7,6 @@
    used rather than where it is set: the panel is all rail, while in Settings
    the preview's box can be dark on a light page. */
 :root {
-  --rail-surface: light-dark(#fff, #000);
   --rail-hairline: light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.09));
   --rail-track: light-dark(#efebe5, rgb(255 255 255 / 0.14));
   --rail-mark: light-dark(#1c1a17, #fff);
@@ -22,6 +21,19 @@
   --rail-spent: rgb(217 23 33);
 }
 
+/* The rail's surface, and how much of the desktop it lets through: solid,
+   or less so as glass (`applyGlass` in theme.ts sets --rail-glass). Said
+   again on every rail, so the preview can be glass on a solid page. The card
+   stays solid: it is there to be read. */
+:root,
+.rail-face {
+  --rail-surface: light-dark(rgb(255 255 255 / var(--rail-glass, 1)), rgb(0 0 0 / var(--rail-glass, 1)));
+}
+
+:root {
+  --rail-card-surface: light-dark(#fff, #000);
+}
+
 /* A rail or a card of it, in the theme the rail has. */
 [data-rail-theme="light"] {
   color-scheme: light;
@@ -29,6 +41,17 @@
 
 [data-rail-theme="dark"] {
   color-scheme: dark;
+}
+
+/* Glass: an edge that holds the rail together over any desktop, and
+   figures that keep reading over whatever shows through. */
+[data-glass] {
+  --rail-hairline: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.24));
+}
+
+[data-glass] .rail-face .label,
+.rail-face[data-glass] .label {
+  text-shadow: 0 0 4px light-dark(rgb(255 255 255 / 0.9), rgb(0 0 0 / 0.9));
 }
 
 .rail-face {

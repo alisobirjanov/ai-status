@@ -23,7 +23,7 @@ import { colours, isSpent, percentText, reasonText, relative, resetText, shownFr
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
 import { RING, ringItem, shownWindows, svg } from "../shared/rail";
-import { railScheme } from "../shared/theme";
+import { applyGlass, railScheme } from "../shared/theme";
 import type { AccountView, Layout, Rect, Snapshot, UsageWindow } from "../shared/types";
 import "../shared/rail.css";
 import "./panel.css";
@@ -863,7 +863,10 @@ document.addEventListener("contextmenu", (event) => event.preventDefault());
 
 function render() {
   // The whole page is the rail, card included.
-  if (snapshot) document.documentElement.dataset.railTheme = railScheme(snapshot);
+  if (snapshot) {
+    document.documentElement.dataset.railTheme = railScheme(snapshot);
+    applyGlass(document.documentElement, snapshot);
+  }
   renderRail();
   drawSurface();
   renderCard();

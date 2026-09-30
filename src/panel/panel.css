@@ -89,7 +89,7 @@ body {
   box-sizing: border-box;
   padding: 18px;
   border-radius: 20px;
-  background: var(--rail-surface);
+  background: var(--rail-card-surface);
   color: var(--rail-text);
   display: flex;
   flex-direction: column;
@@ -109,7 +109,7 @@ body {
 }
 
 .card-tail path {
-  fill: var(--rail-surface);
+  fill: var(--rail-card-surface);
 }
 
 .card-header {

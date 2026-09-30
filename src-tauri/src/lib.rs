@@ -76,6 +76,8 @@ struct SettingsPatch {
     shows_card: Option<bool>,
     theme: Option<Theme>,
     rail_stays_dark: Option<bool>,
+    glass: Option<bool>,
+    glass_transparency: Option<u32>,
     checks_for_updates: Option<bool>,
 }
 
@@ -97,6 +99,8 @@ impl SettingsPatch {
             shows_card: Some(defaults.shows_card),
             theme: Some(defaults.theme),
             rail_stays_dark: Some(defaults.rail_stays_dark),
+            glass: Some(defaults.glass),
+            glass_transparency: Some(defaults.glass_transparency),
             checks_for_updates: Some(defaults.checks_for_updates),
         }
     }
@@ -142,6 +146,12 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
     }
     if let Some(dark) = patch.rail_stays_dark {
         settings.rail_stays_dark = dark;
+    }
+    if let Some(glass) = patch.glass {
+        settings.glass = glass;
+    }
+    if let Some(transparency) = patch.glass_transparency {
+        settings.glass_transparency = transparency;
     }
     if let Some(checks) = patch.checks_for_updates {
         settings.checks_for_updates = checks;
@@ -545,6 +555,8 @@ mod tests {
             shows_card: false,
             theme: Theme::Light,
             rail_stays_dark: true,
+            glass: true,
+            glass_transparency: 75,
             login_item_decided: true,
             checks_for_updates: false,
             update_announced: Some("0.2.0".into()),

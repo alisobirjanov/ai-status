@@ -8,6 +8,7 @@ import { MousePointerClick } from "lucide";
 import { colours, isSpent, percentValue, shownFraction, tint, windowName } from "../shared/format";
 import { locale, t } from "../shared/i18n";
 import { ITEM_SPACING, RAIL_PAD_BOTTOM, RAIL_PAD_TOP, RAIL_WIDTH, itemHeight, ringItem, shownWindows } from "../shared/rail";
+import { applyGlass } from "../shared/theme";
 import type { AccountView, RingShows, Snapshot, UsageWindow } from "../shared/types";
 import { countTo, dashLength, drawIn, el, icon, stageHead } from "./dom";
 
@@ -174,6 +175,7 @@ export function preview(): Preview {
     // the page, it changes with it rather than a moment before.
     if (settings.railStaysDark) rail.dataset.railTheme = "dark";
     else delete rail.dataset.railTheme;
+    applyGlass(rail, snapshot);
     renderRail(accounts, snapshot);
     renderLegend(accounts, snapshot);
   }
