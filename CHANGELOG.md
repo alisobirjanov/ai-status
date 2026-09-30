@@ -5,6 +5,18 @@ releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
 
+## 0.1.6
+
+**Русский**
+
+- Стеклянная панель: сквозь неё видно то, что под ней. Включается в настройках, в «Основных» → «Оформление», там же выбирается прозрачность — 25, 50 или 75%. По умолчанию выключена.
+- Карточка при наведении остаётся плотной, чтобы её было легко читать.
+
+**English**
+
+- A glass rail: what is behind it shows through. Switch it on in Settings > General > Appearance and choose how see-through it is — 25, 50 or 75%. It's off by default.
+- The card on hover stays solid, so it is easy to read.
+
 ## 0.1.5
 
 **Русский**
