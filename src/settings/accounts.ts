@@ -7,7 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ArrowRightLeft, CircleAlert, CircleCheck, Ellipsis, KeyRound, LoaderCircle, Pencil, Plus, Power, RotateCw, Trash2, type IconNode } from "lucide";
 
 import { claudeAccounts, hasFigures, mostRoom } from "../shared/accounts";
-import { duration, isSpent, percentValue, reasonText, relative, resetLine, shortWindowName, shownFraction, tint } from "../shared/format";
+import { duration, hiddenEmail, isSpent, percentValue, reasonText, relative, resetLine, shortWindowName, shownFraction, tint } from "../shared/format";
 import { icon as productMark } from "../shared/icons";
 import { t, type StringKey } from "../shared/i18n";
 import { svg } from "../shared/rail";
@@ -141,7 +141,6 @@ interface Row {
   title: HTMLElement;
   badge: HTMLElement;
   found: HTMLElement;
-  email: HTMLElement;
   plan: HTMLElement;
   checked: HTMLElement;
   meters: HTMLElement;
@@ -161,6 +160,8 @@ interface Row {
   closeMenu(): void;
   /** What the box shows now, so its buttons do what it asks. */
   setBox(state: BoxState | null): void;
+  /** Whose it is, or `null` while nobody is signed in to it. */
+  setEmail(address: string | null): void;
 }
 
 /** What the box in place of the rings says, when it is there. */
@@ -272,7 +273,20 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     const use = button("use-pill", el("span", "use-icon"), el("span", undefined, t("useInClaudeCode")));
     use.title = t("useInClaudeCodeHint");
     use.addEventListener("click", () => void invoke("use_account", { account: id }));
-    const email = el("span");
+    // Whose it is, kept to its first letters until asked for: a settings
+    // window is often on a screen somebody else can see.
+    const email = button("email");
+    let address: string | null = null;
+    let shown = false;
+    const drawEmail = () => {
+      email.disabled = address == null;
+      email.textContent = address == null ? t("notSignedIn") : shown ? address : hiddenEmail(address);
+      email.title = address == null ? "" : t(shown ? "hideEmail" : "showEmail");
+    };
+    email.addEventListener("click", () => {
+      shown = !shown;
+      drawEmail();
+    });
     const found = el("p", "found", el("span", "dot"), email);
     const plan = el("span", "meta-value");
     const checked = el("span", "meta-value");
@@ -410,7 +424,6 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
       title,
       badge,
       found,
-      email,
       plan,
       checked,
       meters,
@@ -429,6 +442,12 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
       remove,
       closeMenu,
       setBox: (state: BoxState | null) => (shownBox = state),
+      setEmail: (next: string | null) => {
+        // Another login in its place is hidden again.
+        if (next !== address) shown = false;
+        address = next;
+        drawEmail();
+      },
     };
   }
 
@@ -480,7 +499,7 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     if (card.title.parentElement) card.title.textContent = account.title;
     card.title.title = account.title;
     card.badge.hidden = !account.inClaudeCode;
-    card.email.textContent = account.email ?? t("notSignedIn");
+    card.setEmail(account.email);
     card.found.classList.toggle("missing", gone || account.usage.state === "unavailable");
     card.plan.textContent = account.usage.plan ?? "–";
     card.checked.textContent = checkedText(account);

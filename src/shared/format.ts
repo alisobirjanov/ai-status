@@ -153,3 +153,14 @@ export function relative(ms: number, style: Intl.RelativeTimeFormatStyle = "long
 export function reasonText(reason: Reason): string {
   return t(reason);
 }
+
+/**
+ * An email with all but the start of its name left out, `sa****@gmail.com`:
+ * enough to tell accounts apart on a screen others can see. The stars don't
+ * count the letters they stand for.
+ */
+export function hiddenEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  const name = Array.from(at < 0 ? email : email.slice(0, at));
+  return `${name.slice(0, name.length > 2 ? 2 : 1).join("")}****${at < 0 ? "" : email.slice(at)}`;
+}
