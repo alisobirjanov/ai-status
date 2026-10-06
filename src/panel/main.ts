@@ -23,7 +23,7 @@ import { TURN_MS, claudeAccounts, railAccounts as onRail, takesTurns } from "../
 import { colours, hiddenEmail, isSpent, percentText, reasonText, relative, resetText, shortWindowName, shownFraction, tint, untilText, windowName } from "../shared/format";
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
-import { RING, ringItem, shownWindows, svg } from "../shared/rail";
+import { RING, ringItem, shownWindows, svg, tradeMarks } from "../shared/rail";
 import { applyGlass, railScheme } from "../shared/theme";
 import type { AccountView, Layout, Rect, Snapshot, UsageWindow } from "../shared/types";
 import "../shared/rail.css";
@@ -153,6 +153,7 @@ function renderRail() {
       return item;
     }),
   );
+  tradeMarks(rail);
   // Redrawn while it turns, it goes on turning.
   placeParts();
   nextTurn();

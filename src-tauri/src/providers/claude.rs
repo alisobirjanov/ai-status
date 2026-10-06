@@ -325,18 +325,13 @@ fn window_from_limit(limit: &Value) -> Option<UsageWindow> {
     })
 }
 
-/// Whether Claude Code says this limit is spent. `locked_reason` is
-/// unambiguous. A **warning is not a block** — Claude Code raises `severity`
-/// to `warning` while a limit still has room (seen at 76%). Anything else it
-/// has not been seen to say errs towards "you're blocked".
+/// Whether the server says this limit is spent: `locked_reason` is
+/// unambiguous. One at 100% is spent by its figure, wherever it is read.
+/// **`severity` is never a block.** Claude Code 2.1 calls it "the server's
+/// reading of the row for a meter's colour, e.g. 'normal', 'warning' or
+/// 'critical'": `warning` was seen at 76%, `critical` at 90%.
 fn is_spent(limit: &Value) -> bool {
-    if limit.get("locked_reason").is_some_and(|v| !v.is_null()) {
-        return true;
-    }
-    let Some(severity) = limit.get("severity").and_then(Value::as_str) else {
-        return false;
-    };
-    !["normal", "ok", "none", "healthy", "warning", "warn"].contains(&severity.to_lowercase().as_str())
+    limit.get("locked_reason").is_some_and(|v| !v.is_null())
 }
 
 fn parse_date(text: &str) -> Option<i64> {
@@ -386,7 +381,8 @@ mod tests {
     #[test]
     fn spent_is_the_providers_word() {
         assert!(is_spent(&json!({ "locked_reason": "limit" })));
-        assert!(is_spent(&json!({ "severity": "blocked" })));
+        // A meter's colour, not a block: 90% and still usable.
+        assert!(!is_spent(&json!({ "percent": 90, "severity": "critical" })));
         assert!(!is_spent(&json!({ "severity": "WARNING" })));
         assert!(!is_spent(&json!({ "locked_reason": null })));
         assert!(!is_spent(&json!({ "percent": 100 })));

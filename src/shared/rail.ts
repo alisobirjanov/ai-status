@@ -12,6 +12,8 @@ export const RING = 40;
 const RADIUS = 18;
 const STROKE = 4;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+/** How long a ring's letter, then its service's mark, stays before the other's turn. */
+const MARK_TURN_MS = 5_000;
 
 // The rail's budgets in logical pixels. They mirror `panel.rs`, which sizes
 // the panel window from the same numbers.
@@ -150,13 +152,37 @@ function ring(account: AccountView, settings: Settings, arcs: [UsageWindow | und
   mark.className = "mark";
   const initial = monogram(account, settings);
   if (initial) {
+    // Which account, and which service: they take turns (`tradeMarks`).
     mark.classList.add("monogram");
-    mark.textContent = initial;
+    const letter = document.createElement("span");
+    letter.className = "face initial";
+    letter.textContent = initial;
+    const logo = document.createElement("span");
+    logo.className = "face logo";
+    logo.appendChild(icon(account.provider, markSize));
+    mark.append(letter, logo);
   } else {
     mark.appendChild(icon(account.provider, markSize));
   }
   ring.appendChild(mark);
   return ring;
+}
+
+const markTimers = new WeakMap<HTMLElement, number>();
+
+/**
+ * Where rings have a letter, it gives way to the service's mark and back,
+ * every `MARK_TURN_MS`. The turns go by the clock and are kept on the
+ * `face` the rings are in, so a ring drawn again mid-turn shows what it
+ * would have, and every face is in step. Called after each drawing; with no
+ * letter on the face, there is no timer.
+ */
+export function tradeMarks(face: HTMLElement) {
+  window.clearTimeout(markTimers.get(face));
+  markTimers.delete(face);
+  face.classList.toggle("marks-shown", Math.floor(Date.now() / MARK_TURN_MS) % 2 === 1);
+  if (!face.querySelector(".mark.monogram")) return;
+  markTimers.set(face, window.setTimeout(() => tradeMarks(face), MARK_TURN_MS - (Date.now() % MARK_TURN_MS) + 20));
 }
 
 /**

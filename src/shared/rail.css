@@ -201,6 +201,34 @@
   font-size: 11px;
 }
 
+/* The letter and the service's mark take turns in the ring (`tradeMarks`):
+   one shrinks away as the other grows in. */
+.rail-face {
+  --mark-shrink: 0.6;
+}
+
+.rail-face .ring .mark.monogram .face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.rail-face .ring .mark.monogram .logo,
+.rail-face.marks-shown .ring .mark.monogram .initial {
+  opacity: 0;
+  transform: scale(var(--mark-shrink));
+}
+
+.rail-face.marks-shown .ring .mark.monogram .logo {
+  opacity: 1;
+  transform: none;
+}
+
 @keyframes turn-in {
   from {
     opacity: 0;
@@ -215,5 +243,10 @@
 @media (prefers-reduced-motion: reduce) {
   .rail-face .item.turn-in {
     animation: none;
+  }
+
+  /* Still taking turns, by fading alone. */
+  .rail-face {
+    --mark-shrink: 1;
   }
 }

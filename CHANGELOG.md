@@ -5,6 +5,20 @@ releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
 
+## 0.1.9
+
+**Русский**
+
+- С несколькими аккаунтами в кольце на панели по очереди видны первая буква аккаунта и значок Claude, по 5 секунд, с плавным переходом.
+- Исправлено: лимит, израсходованный на 90%, показывался как 100% и «Лимит исчерпан». Теперь лимит исчерпан только на 100%.
+- Исправлено: при самом первом запуске после выбора сервиса панель оставалась пустой, а окно настроек не закрывалось — помогало только завершить Pulse в диспетчере задач.
+
+**English**
+
+- With several accounts, the ring on the rail shows the account's first letter and the Claude logo in turn, 5 seconds each, with a smooth change between them.
+- Fixed: a limit 90% used showed as 100% and "Limit reached". A limit is now reached only at 100%.
+- Fixed: on the very first launch, after choosing what to show, the rail stayed empty and Settings wouldn't close, until Pulse was ended in Task Manager.
+
 ## 0.1.8
 
 **Русский**

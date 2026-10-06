@@ -175,7 +175,12 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
     settings.normalize();
 }
 
-#[tauri::command]
+/// Run off the main thread, as is every command that can make a window: a
+/// plain command runs inside WebView2's callback for the page's call, and a
+/// webview made there never finishes (tauri's "Known issues"). The first
+/// choice makes the rail that way, and it hung a first launch: a blank
+/// rail, and a Settings window that wouldn't close.
+#[tauri::command(async)]
 fn update_settings(app: AppHandle, patch: SettingsPatch) {
     change_settings(&app, |settings| apply(settings, patch));
 }
@@ -232,7 +237,8 @@ pub(crate) fn change_settings(app: &AppHandle, change: impl FnOnce(&mut Settings
 }
 
 /// Settings' "Reset all settings". Where the rail sits is not a setting.
-#[tauri::command]
+/// Off the main thread, as `update_settings` is: it can bring the rail back.
+#[tauri::command(async)]
 fn reset_settings(app: AppHandle) {
     update_settings(app, SettingsPatch::defaults());
 }
@@ -328,7 +334,8 @@ async fn panel_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String>
     .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+/// Off the main thread, as `update_settings` is: it can make the window.
+#[tauri::command(async)]
 fn open_settings(app: AppHandle) {
     show_settings(&app);
 }

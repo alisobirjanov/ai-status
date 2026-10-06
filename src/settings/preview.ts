@@ -8,7 +8,7 @@ import { MousePointerClick } from "lucide";
 import { railAccounts } from "../shared/accounts";
 import { colours, isSpent, percentValue, resetLine, shownFraction, tint, windowName } from "../shared/format";
 import { t } from "../shared/i18n";
-import { ITEM_SPACING, RAIL_PAD_BOTTOM, RAIL_PAD_TOP, RAIL_WIDTH, itemHeight, ringItem, shownWindows } from "../shared/rail";
+import { ITEM_SPACING, RAIL_PAD_BOTTOM, RAIL_PAD_TOP, RAIL_WIDTH, itemHeight, ringItem, shownWindows, tradeMarks } from "../shared/rail";
 import { applyGlass } from "../shared/theme";
 import type { AccountView, RingShows, Snapshot, UsageWindow } from "../shared/types";
 import { countTo, dashLength, drawIn, el, icon, stageHead } from "./dom";
@@ -99,6 +99,7 @@ export function preview(): Preview {
         return item;
       }),
     );
+    tradeMarks(rail);
     railHeight = RAIL_PAD_TOP + accounts.length * height + Math.max(accounts.length - 1, 0) * ITEM_SPACING + RAIL_PAD_BOTTOM;
     rail.style.height = `${railHeight}px`;
     fit();
