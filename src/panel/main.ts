@@ -20,7 +20,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import { TURN_MS, claudeAccounts, railAccounts as onRail, takesTurns } from "../shared/accounts";
-import { colours, hiddenEmail, isSpent, percentText, reasonText, relative, resetText, shortWindowName, shownFraction, tint, untilText, windowName } from "../shared/format";
+import { colours, failedText, hiddenEmail, isSpent, percentText, relative, resetText, shortWindowName, shownFraction, tint, untilText, windowName } from "../shared/format";
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
 import { RING, ringItem, shownWindows, svg, tradeMarks } from "../shared/rail";
@@ -637,7 +637,7 @@ function accountBlock(account: AccountView): HTMLElement {
 
   const usage = account.usage;
   if (usage.state === "unavailable") {
-    if (usage.reason) block.appendChild(paragraph("message", reasonText(usage.reason)));
+    if (usage.reason) block.appendChild(paragraph("message", failedText(usage.reason, account)));
     return block;
   }
   const limits = usage.windows.filter((window) => window.kind === "fiveHour" || window.kind === "weekly");
@@ -706,7 +706,7 @@ function cardBody(account: AccountView): HTMLElement {
   }
 
   if (usage.state === "unavailable" && usage.reason) {
-    body.appendChild(paragraph("message", reasonText(usage.reason)));
+    body.appendChild(paragraph("message", failedText(usage.reason, account)));
   } else if (usage.windows.length === 0 && usage.creditBalance == null) {
     // A card with only a title in it reads as one that failed to load.
     body.appendChild(paragraph("message", t("noLimitsReported")));
@@ -717,7 +717,7 @@ function cardBody(account: AccountView): HTMLElement {
   if (usage.state === "stale" && usage.observedAt != null) {
     let note = t("asOf", relative(usage.observedAt));
     const failed = account.lastCheck?.reason;
-    if (failed && failed !== "notChecked") note += ` · ${reasonText(failed)}`;
+    if (failed && failed !== "notChecked") note += ` · ${failedText(failed, account)}`;
     body.appendChild(paragraph("footnote", note));
   }
   return body;

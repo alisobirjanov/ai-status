@@ -51,6 +51,9 @@ pub async fn fetch(folder: Option<&Path>) -> ProviderUsage {
             }
             // Revoked early, or renewed elsewhere since: Claude Code knows.
             Outcome::NeedsFreshCredentials => {}
+            Outcome::RateLimited(wait) => {
+                return ProviderUsage::rate_limited(Provider::ClaudeCode, wait).recording(Route::Endpoint);
+            }
             Outcome::Failed(reason) => {
                 return ProviderUsage::unavailable(Provider::ClaudeCode, reason).recording(Route::Endpoint);
             }

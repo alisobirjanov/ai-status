@@ -97,6 +97,7 @@ impl Cache {
             credit_balance: stored.credit_balance,
             origin: stored.origin,
             is_cached: true,
+            retry_after_ms: None,
         };
         restored.current(now_ms())
     }

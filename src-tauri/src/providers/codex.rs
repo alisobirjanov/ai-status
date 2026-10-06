@@ -56,6 +56,7 @@ pub async fn fetch(source: Source) -> ProviderUsage {
             ProviderUsage::unavailable(Provider::Codex, Reason::CodexSignInRequired).recording(Route::Endpoint)
         }
         Outcome::NeedsFreshCredentials => via_app_server().await.recording(Route::AppServer),
+        Outcome::RateLimited(wait) => ProviderUsage::rate_limited(Provider::Codex, wait).recording(Route::Endpoint),
         Outcome::Failed(reason) => ProviderUsage::unavailable(Provider::Codex, reason).recording(Route::Endpoint),
     }
 }

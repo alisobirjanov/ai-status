@@ -7,7 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ArrowRightLeft, CircleAlert, CircleCheck, Ellipsis, KeyRound, LoaderCircle, Pencil, Plus, Power, RotateCw, Trash2, type IconNode } from "lucide";
 
 import { claudeAccounts, hasFigures, mostRoom } from "../shared/accounts";
-import { duration, hiddenEmail, isSpent, percentValue, reasonText, relative, resetLine, shortWindowName, shownFraction, tint } from "../shared/format";
+import { duration, failedText, hiddenEmail, isSpent, percentValue, refreshHint, relative, resetLine, shortWindowName, shownFraction, tint, waitLeft } from "../shared/format";
 import { icon as productMark } from "../shared/icons";
 import { t, type StringKey } from "../shared/i18n";
 import { svg } from "../shared/rail";
@@ -487,7 +487,7 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     if (account.refreshing || account.usage.reason === "notChecked" || account.usage.reason == null) {
       return { glyph: LoaderCircle, spin: account.refreshing, tone: "quiet", title: account.refreshing ? t("checking") : t("notChecked") };
     }
-    return { glyph: CircleAlert, tone: "problem", title: reasonText(account.usage.reason) };
+    return { glyph: CircleAlert, tone: "problem", title: failedText(account.usage.reason, account) };
   }
 
   function applyRow(card: Row, account: AccountView, snap: Snapshot) {
@@ -503,8 +503,9 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     card.found.classList.toggle("missing", gone || account.usage.state === "unavailable");
     card.plan.textContent = account.usage.plan ?? "–";
     card.checked.textContent = checkedText(account);
-    card.refresh.disabled = !on || account.refreshing;
+    card.refresh.disabled = !on || account.refreshing || waitLeft(account) > 0;
     card.refresh.classList.toggle("spinning", account.refreshing);
+    card.refresh.title = refreshHint(account);
     card.refresh.setAttribute("aria-label", `${t("refresh")} ${account.title}`);
 
     // Any account Pulse added can be the one Claude Code is in, so long as its login works.
@@ -645,7 +646,7 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     summary.hidden = shown.length < 2;
     if (shown.length >= 2) applySummary(shown, snap);
     const busy = shown.some((account) => account.refreshing);
-    refreshAll.disabled = !on || busy || shown.length === 0;
+    refreshAll.disabled = !on || busy || shown.length === 0 || shown.every((account) => waitLeft(account) > 0);
     refreshAll.classList.toggle("spinning", busy);
     follows.set(snap.settings.railFollows);
     saysFree.set(snap.settings.saysWhoIsFree);

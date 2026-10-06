@@ -158,6 +158,10 @@ pub struct ProviderUsage {
     /// Set only by cache restoration.
     #[serde(default)]
     pub is_cached: bool,
+    /// Refused as too frequent: how long the provider said to wait, in ms,
+    /// if it said. Neither shown nor banked.
+    #[serde(skip)]
+    pub retry_after_ms: Option<i64>,
 }
 
 impl ProviderUsage {
@@ -173,6 +177,7 @@ impl ProviderUsage {
             credit_balance,
             origin: None,
             is_cached: false,
+            retry_after_ms: None,
         }
     }
 
@@ -187,7 +192,13 @@ impl ProviderUsage {
             credit_balance: None,
             origin: None,
             is_cached: false,
+            retry_after_ms: None,
         }
+    }
+
+    /// Asked too often, and perhaps told for how long not to ask.
+    pub fn rate_limited(provider: Provider, retry_after_ms: Option<i64>) -> Self {
+        ProviderUsage { retry_after_ms, ..ProviderUsage::unavailable(provider, Reason::RateLimited) }
     }
 
     pub fn recording(mut self, route: Route) -> Self {

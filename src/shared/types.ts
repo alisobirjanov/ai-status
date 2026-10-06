@@ -81,6 +81,8 @@ export interface AccountView {
   usage: ProviderUsage;
   refreshing: boolean;
   lastCheck: Check | null;
+  /** Refused as too frequent: nothing is asked for it until then. Unix ms. */
+  retryAt: number | null;
 }
 
 export interface Settings {

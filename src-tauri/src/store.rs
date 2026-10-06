@@ -25,6 +25,12 @@ use crate::settings::Settings;
 const PASS_CEILING_MS: i64 = 180_000;
 /// Sweeping the rail must not fire one request per ring.
 const LOOK_COOLDOWN_MS: i64 = 60_000;
+/// Told to slow down without being told for how long: wait five minutes,
+/// as Claude Code does with the same answer.
+const QUIET_DEFAULT_MS: i64 = 300_000;
+/// However long a server asks for, it is asked again within the hour, as
+/// Claude Code caps it.
+const QUIET_CEILING_MS: i64 = 3_600_000;
 
 pub struct AppState {
     pub settings: Mutex<Settings>,
@@ -71,6 +77,8 @@ pub struct AccountView {
     pub usage: ProviderUsage,
     pub refreshing: bool,
     pub last_check: Option<Check>,
+    /// Refused as too frequent: nothing is asked for it until then. Unix ms.
+    pub retry_at: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -137,6 +145,9 @@ pub struct Store {
     /// Asked, not answered: an account that refuses every time must not read
     /// as permanently due and spin the loop.
     asked_at: HashMap<AccountId, i64>,
+    /// Refused as too frequent: not asked again until then, by the timer or
+    /// by a click. Asking anyway only keeps the refusals coming.
+    quiet_until: HashMap<AccountId, i64>,
     last_change: HashMap<AccountId, i64>,
     in_flight: HashMap<AccountId, (u64, i64)>,
     /// Who each Claude login is, looked at again after every reading.
@@ -161,6 +172,7 @@ impl Store {
             usage: HashMap::new(),
             last_check: HashMap::new(),
             asked_at: HashMap::new(),
+            quiet_until: HashMap::new(),
             last_change: HashMap::new(),
             in_flight: HashMap::new(),
             identity: HashMap::new(),
@@ -197,8 +209,10 @@ impl Store {
         }
     }
 
+    /// Signed in again: a new login is worth asking with at once.
     pub fn note_identity(&mut self, account: &str, identity: Identity) {
         self.identity.insert(account.to_string(), identity);
+        self.quiet_until.remove(account);
     }
 
     /// An account added that Claude Code is signed in to as well. Its own
@@ -241,6 +255,11 @@ impl Store {
         if let Some(check) = self.last_check.get(from).cloned() {
             self.last_check.insert(to.to_string(), check);
         }
+        // A wait was asked of the login, so it goes where the login goes.
+        match self.quiet_until.get(from).copied() {
+            Some(until) => self.quiet_until.insert(to.to_string(), until),
+            None => self.quiet_until.remove(to),
+        };
         self.cache.copy(from, to);
     }
 
@@ -249,6 +268,7 @@ impl Store {
         self.usage.remove(account);
         self.last_check.remove(account);
         self.asked_at.remove(account);
+        self.quiet_until.remove(account);
         self.last_change.remove(account);
         self.in_flight.remove(account);
         self.identity.remove(account);
@@ -326,6 +346,7 @@ impl Store {
                         .unwrap_or_else(|| ProviderUsage::unavailable(provider, Reason::NotChecked)),
                     refreshing: self.in_flight.get(read).is_some_and(|(_, at)| now - at < PASS_CEILING_MS),
                     last_check: self.last_check.get(read).cloned(),
+                    retry_at: self.quiet(read, now),
                     id,
                 })
             })
@@ -355,8 +376,17 @@ impl Store {
         adaptive::interval_secs(&signals, now) * 1000
     }
 
-    /// Claim an account for a pass. `None` when one is already out for it.
+    /// Until when an account is not to be asked, if it is waiting now.
+    fn quiet(&self, account: &str, now: i64) -> Option<i64> {
+        self.quiet_until.get(account).copied().filter(|until| *until > now)
+    }
+
+    /// Claim an account for a pass. `None` when one is already out for it,
+    /// or it was refused as too frequent and the wait isn't over.
     fn begin(&mut self, account: &str, now: i64) -> Option<u64> {
+        if self.quiet(account, now).is_some() {
+            return None;
+        }
         // Claude Code is being handed a login: none is read until it has been.
         if self.switch.as_ref().is_some_and(|s| s.waiting) && provider_of(account) == Some(Provider::ClaudeCode) {
             return None;
@@ -386,6 +416,12 @@ impl Store {
             self.identity.insert(account.to_string(), identity);
         }
         self.last_check.insert(account.to_string(), Check { reason: raw.reason, origin: raw.origin, checked_at: now });
+        if raw.reason == Some(Reason::RateLimited) {
+            let wait = raw.retry_after_ms.unwrap_or(QUIET_DEFAULT_MS).min(QUIET_CEILING_MS);
+            self.quiet_until.insert(account.to_string(), now + wait);
+        } else {
+            self.quiet_until.remove(account);
+        }
 
         let shown = self.cache.reconciled(account, raw);
         let moved = self.usage.get(account).map_or(true, |old| !same_figures(&old.windows, &shown.windows));
@@ -557,6 +593,7 @@ pub fn start_loop(app: AppHandle) {
                     for account in settings.monitored().into_iter().filter(|id| !store.mirrors(id)) {
                         let interval = store.interval_ms(&account, &settings, now);
                         let next = store.asked_at.get(&account).map_or(now, |at| at + interval);
+                        let next = store.quiet(&account, now).map_or(next, |until| next.max(until));
                         if next <= now {
                             due.push(account);
                         } else {
@@ -667,6 +704,41 @@ mod tests {
         assert_eq!(view("claudeCode").same_as.as_deref(), Some("claudeCode#a1"));
         assert!(view("claudeCode").in_claude_code && view("claudeCode#a1").in_claude_code);
         assert!(view("claudeCode#a1").same_as.is_none() && !view("claudeCode#b2").in_claude_code);
+    }
+
+    #[test]
+    fn refused_as_too_frequent_it_is_left_alone_for_a_while() {
+        let mut store = Store::new();
+        let ask = |store: &mut Store| store.begin("claudeCode", now_ms());
+
+        // Not told how long: five minutes, by the timer or a click alike.
+        let pass = ask(&mut store).unwrap();
+        store.commit("claudeCode", pass, ProviderUsage::rate_limited(Provider::ClaudeCode, None), None);
+        let until = store.quiet("claudeCode", now_ms()).expect("waiting");
+        assert!((until - now_ms() - QUIET_DEFAULT_MS).abs() < 5_000);
+        assert_eq!(ask(&mut store), None);
+        assert_eq!(store.snapshot(&three_accounts()).accounts[0].retry_at, Some(until));
+
+        // Told, it waits as long as it was told, but not past the hour.
+        store.quiet_until.clear();
+        let pass = ask(&mut store).unwrap();
+        store.commit("claudeCode", pass, ProviderUsage::rate_limited(Provider::ClaudeCode, Some(30_000)), None);
+        assert!(store.quiet("claudeCode", now_ms()).unwrap() - now_ms() <= 30_000);
+        store.quiet_until.clear();
+        let pass = ask(&mut store).unwrap();
+        store.commit("claudeCode", pass, ProviderUsage::rate_limited(Provider::ClaudeCode, Some(86_400_000)), None);
+        assert!(store.quiet("claudeCode", now_ms()).unwrap() - now_ms() <= QUIET_CEILING_MS);
+
+        // The wait is the login's, and goes where it goes.
+        store.copy_readings("claudeCode", "claudeCode#a1");
+        assert!(store.quiet("claudeCode#a1", now_ms()).is_some());
+
+        // Over, and answered, it is asked as usual again.
+        store.quiet_until.insert("claudeCode".into(), now_ms() - 1);
+        let pass = ask(&mut store).unwrap();
+        store.commit("claudeCode", pass, usage(0.2, 0.1), None);
+        assert_eq!(store.quiet_until.get("claudeCode"), None);
+        assert!(ask(&mut store).is_some());
     }
 
     #[test]

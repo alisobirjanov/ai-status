@@ -29,6 +29,8 @@ const english = {
   unreachable: "The service didn't respond.",
   unreadableReply: "Couldn't read the reply.",
   rateLimited: "Checking too often — easing off.",
+  rateLimitedFor: "Checking too often — next check in {0}.",
+  nextCheckIn: "Next check in {0}",
   serverError: "The service returned an error.",
   // Settings: the window
   settingsTitle: "Pulse Settings",
@@ -322,6 +324,8 @@ const russian: Record<Key, string> = {
   unreachable: "Сервис не ответил.",
   unreadableReply: "Не удалось разобрать ответ.",
   rateLimited: "Слишком частые проверки — Pulse будет спрашивать реже.",
+  rateLimitedFor: "Слишком частые проверки — следующая через {0}.",
+  nextCheckIn: "Следующая проверка через {0}",
   serverError: "Сервис ответил ошибкой.",
   settingsTitle: "Настройки Pulse",
   tabGeneral: "Основные",
