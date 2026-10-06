@@ -1252,7 +1252,7 @@ mod tests {
     }
 
     fn items(count: usize, shows: RingShows, letters: bool) -> Items {
-        let enabled = [Provider::ClaudeCode, Provider::Codex][..count].to_vec();
+        let enabled = [Provider::ClaudeCode, Provider::Codex][..count].iter().map(|p| p.id().to_string()).collect();
         Items::of(&Settings { enabled, ring_shows: shows, limit_letters: letters, ..Settings::default() })
     }
 

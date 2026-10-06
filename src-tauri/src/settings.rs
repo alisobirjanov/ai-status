@@ -1,9 +1,11 @@
 //! What the reader chose, persisted as `%APPDATA%\Pulse\settings.json`.
 
+use std::collections::BTreeMap;
+
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::model::{Provider, ProviderUsage, UsageWindow, WindowKind};
+use crate::model::{provider_of, slot_of, AccountId, ProviderUsage, UsageWindow, WindowKind};
 use crate::panel::Side;
 use crate::paths;
 use crate::providers::codex;
@@ -11,9 +13,23 @@ use crate::providers::codex;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
-    /// Switched-on providers, in rail order. First launch enables nothing.
-    #[serde(deserialize_with = "known_providers")]
-    pub enabled: Vec<Provider>,
+    /// Switched-on services, in rail order. `claudeCode` stands for every
+    /// Claude account: each is read, and one at a time is on the rail.
+    /// First launch enables nothing.
+    #[serde(deserialize_with = "known_accounts")]
+    pub enabled: Vec<AccountId>,
+    /// Claude accounts added beyond the one Claude Code itself is signed in
+    /// to, by slot: each is a folder of its own that Claude Code keeps the
+    /// login in (`paths::claude_account_dir`).
+    pub claude_accounts: Vec<String>,
+    /// What the reader calls an account, by id. Without one, a Claude
+    /// account goes by the name on its email.
+    pub account_labels: BTreeMap<AccountId, String>,
+    /// With several Claude accounts, whose rings sit on the rail.
+    #[serde(deserialize_with = "or_default")]
+    pub rail_follows: RailFollows,
+    /// The Claude account in use ran out: say which other one has room.
+    pub says_who_is_free: bool,
     /// The initial choice has been made. Until it has, nothing is read or
     /// fetched and there is no panel — only the chooser.
     pub has_chosen: bool,
@@ -71,6 +87,10 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             enabled: Vec::new(),
+            claude_accounts: Vec::new(),
+            account_labels: BTreeMap::new(),
+            rail_follows: RailFollows::default(),
+            says_who_is_free: true,
             has_chosen: false,
             codex_source: codex::Source::Automatic,
             refresh_minutes: None,
@@ -132,6 +152,20 @@ impl RingShows {
             }
         }
     }
+}
+
+/// Which of several Claude accounts the rail shows. The card on hover lists
+/// every one whichever it is.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RailFollows {
+    /// The one Claude Code is signed in to.
+    #[default]
+    InUse,
+    /// Whichever is furthest from a limit.
+    MostRoom,
+    /// Each, one after another.
+    EachInTurn,
 }
 
 /// Light or dark. One choice for Settings and the rail.
@@ -202,6 +236,8 @@ pub fn system_theme() -> tauri::Theme {
 /// attention", and every option sits above the yellow step at 50%.
 pub const WARNING_CHOICES: [u32; 6] = [60, 70, 75, 80, 85, 90];
 pub const GLASS_CHOICES: [u32; 3] = [25, 50, 75];
+/// An account's name is a word or two, not a paragraph.
+pub const LABEL_MAX_CHARS: usize = 32;
 
 impl Settings {
     fn file() -> std::path::PathBuf {
@@ -226,7 +262,22 @@ impl Settings {
     /// Never trust the stored list as written.
     pub fn normalize(&mut self) {
         let mut seen = std::collections::HashSet::new();
-        self.enabled.retain(|p| seen.insert(*p));
+        self.claude_accounts.retain(|slot| crate::model::is_slot(slot) && seen.insert(slot.clone()));
+        // A service, not an account: an account switched on by itself, as
+        // Pulse Dev builds had it before 0.1.7, switches its service on.
+        for id in &mut self.enabled {
+            if let Some(provider) = provider_of(id) {
+                *id = provider.id().to_string();
+            }
+        }
+        let mut seen = std::collections::HashSet::new();
+        self.enabled.retain(|id| provider_of(id).is_some() && seen.insert(id.clone()));
+        let known = self.all_accounts();
+        self.account_labels.retain(|id, _| known.contains(id));
+        for label in self.account_labels.values_mut() {
+            *label = tidy_label(label);
+        }
+        self.account_labels.retain(|_, label| !label.is_empty());
         if !WARNING_CHOICES.contains(&self.warning_at) {
             self.warning_at = 75;
         }
@@ -238,18 +289,50 @@ impl Settings {
         }
     }
 
-    pub fn is_enabled(&self, provider: Provider) -> bool {
-        self.enabled.contains(&provider)
+    /// Whether an account is read: its service is on, and it is still there.
+    pub fn is_enabled(&self, account: &str) -> bool {
+        let Some(provider) = provider_of(account) else { return false };
+        self.enabled.iter().any(|id| id == provider.id()) && slot_of(account).map_or(true, |slot| self.claude_accounts.iter().any(|s| s == slot))
+    }
+
+    /// Every account read, in rail order: each service switched on, Claude
+    /// with all of its accounts.
+    pub fn monitored(&self) -> Vec<AccountId> {
+        let all = self.all_accounts();
+        self.enabled
+            .iter()
+            .flat_map(|service| all.iter().filter(move |id| provider_of(id).map(|p| p.id()) == Some(service.as_str())).cloned())
+            .collect()
+    }
+
+    /// Every account there is, on the rail or not: Claude Code's own login,
+    /// the Claude accounts added after it, then Codex.
+    pub fn all_accounts(&self) -> Vec<AccountId> {
+        std::iter::once("claudeCode".to_string())
+            .chain(self.claude_accounts.iter().map(|slot| format!("claudeCode#{slot}")))
+            .chain(std::iter::once("codex".to_string()))
+            .collect()
+    }
+
+    /// How many Claude accounts there are, on the rail or not.
+    pub fn claude_account_count(&self) -> usize {
+        1 + self.claude_accounts.len()
     }
 }
 
-/// Unknown names are dropped rather than failing the whole file: a setting
+/// One line, no longer than a name needs to be.
+pub fn tidy_label(label: &str) -> String {
+    let words: Vec<&str> = label.split_whitespace().collect();
+    words.join(" ").chars().take(LABEL_MAX_CHARS).collect::<String>().trim_end().to_string()
+}
+
+/// Unknown ids are dropped rather than failing the whole file: a setting
 /// written by a newer version must not reset everything else.
-fn known_providers<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<Provider>, D::Error> {
+fn known_accounts<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<AccountId>, D::Error> {
     let raw: Vec<serde_json::Value> = Vec::deserialize(deserializer)?;
     Ok(raw
         .into_iter()
-        .filter_map(|value| serde_json::from_value(value).ok())
+        .filter_map(|value| value.as_str().filter(|id| provider_of(id).is_some()).map(str::to_string))
         .collect())
 }
 
@@ -263,20 +346,28 @@ fn or_default<'de, D: Deserializer<'de>, T: DeserializeOwned + Default>(deserial
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::Provider;
 
     #[test]
     fn unknown_providers_are_dropped_not_fatal() {
-        let settings: Settings =
-            serde_json::from_str(r#"{ "enabled": ["codex", "somethingNew", "codex"], "hasChosen": true, "warningAt": 73 }"#)
-                .unwrap();
+        let settings: Settings = serde_json::from_str(
+            r#"{ "enabled": ["codex", "somethingNew", "codex", 7, "codex#a1"], "hasChosen": true, "warningAt": 73 }"#,
+        )
+        .unwrap();
         let mut settings = settings;
         settings.normalize();
-        assert_eq!(settings.enabled, vec![Provider::Codex]);
+        assert_eq!(settings.enabled, vec!["codex"]);
+        // A file from before there could be more than one Claude account has only the one.
+        assert!(settings.claude_accounts.is_empty());
+        assert_eq!(settings.all_accounts(), vec!["claudeCode", "codex"]);
         assert!(settings.has_chosen);
         assert_eq!(settings.warning_at, 75);
         assert!(settings.panel_visible);
         // A file from before updates were checked has the check on.
         assert!(settings.checks_for_updates);
+        // One from before several accounts has the rail follow the one in use, and say who is free.
+        assert_eq!(settings.rail_follows, RailFollows::InUse);
+        assert!(settings.says_who_is_free);
         // One from before docking has a floating rail that stays open once docked.
         assert_eq!(settings.rail_dock, None);
         assert!(!settings.tucks_away);
@@ -289,6 +380,38 @@ mod tests {
         assert!(!settings.glass);
         assert_eq!(settings.glass_transparency, 50);
         assert_eq!(settings.update_announced, None);
+    }
+
+    #[test]
+    fn added_claude_accounts_come_after_the_first() {
+        let mut settings: Settings = serde_json::from_str(
+            r#"{
+                "enabled": ["claudeCode#b2", "claudeCode", "claudeCode#gone", "claudeCode#a1", "claudeCode#b2"],
+                "claudeAccounts": ["a1", "b2", "a1", "../x"],
+                "accountLabels": { "claudeCode#a1": "  Work\n  laptop ", "claudeCode#gone": "Old", "codex": "   " }
+            }"#,
+        )
+        .unwrap();
+        settings.normalize();
+        assert_eq!(settings.claude_accounts, vec!["a1", "b2"]);
+        // Rail order is kept; one that was removed is gone from it.
+        // Switched on by account, as before there was one Claude ring: the service is.
+        assert_eq!(settings.enabled, vec!["claudeCode"]);
+        assert_eq!(settings.all_accounts(), vec!["claudeCode", "claudeCode#a1", "claudeCode#b2", "codex"]);
+        assert_eq!(settings.monitored(), vec!["claudeCode", "claudeCode#a1", "claudeCode#b2"]);
+        assert!(!settings.is_enabled("claudeCode#gone"));
+        assert_eq!(settings.claude_account_count(), 3);
+        assert_eq!(settings.account_labels.len(), 1);
+        assert_eq!(settings.account_labels["claudeCode#a1"], "Work laptop");
+        assert!(settings.is_enabled("claudeCode#a1"));
+        assert!(!settings.is_enabled("codex"));
+    }
+
+    #[test]
+    fn a_label_is_one_short_line() {
+        assert_eq!(tidy_label("  a \t b  "), "a b");
+        assert_eq!(tidy_label(&"x".repeat(50)).chars().count(), LABEL_MAX_CHARS);
+        assert_eq!(tidy_label(&format!("{} y", "x".repeat(LABEL_MAX_CHARS - 1))), "x".repeat(LABEL_MAX_CHARS - 1));
     }
 
     #[test]

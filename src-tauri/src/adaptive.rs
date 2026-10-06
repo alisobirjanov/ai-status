@@ -6,8 +6,9 @@
 use std::path::Path;
 use std::time::SystemTime;
 
-use crate::model::Provider;
+use crate::model::{provider_of, Provider};
 use crate::paths;
+use crate::providers;
 
 pub const FLOOR_SECS: i64 = 120;
 pub const CEILING_SECS: i64 = 1800;
@@ -52,10 +53,11 @@ pub fn interval_secs(signals: &Signals, now: i64) -> i64 {
 /// Claude Code keeps one JSONL per session under `projects\<project>\`;
 /// Codex files them by day under `sessions\YYYY\MM\DD\`, so only today's and
 /// yesterday's folders are looked at.
-pub fn last_agent_activity(provider: Provider) -> Option<i64> {
-    match provider {
+pub fn last_agent_activity(account: &str) -> Option<i64> {
+    match provider_of(account)? {
         Provider::ClaudeCode => {
-            let projects = paths::claude_dir().join("projects");
+            let folder = providers::folder_of(account).unwrap_or_else(paths::claude_dir);
+            let projects = folder.join("projects");
             std::fs::read_dir(projects)
                 .ok()?
                 .flatten()

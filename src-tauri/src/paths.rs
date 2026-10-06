@@ -13,6 +13,23 @@ pub fn claude_dir() -> PathBuf {
         .unwrap_or_else(|| home().join(".claude"))
 }
 
+/// Where Claude Code notes which account it is signed in to: beside its
+/// folder, `~\.claude.json` — or, moved with `CLAUDE_CONFIG_DIR`, inside it.
+/// `folder` is an account Pulse added; `None` is Claude Code's own.
+pub fn claude_global_config(folder: Option<&Path>) -> PathBuf {
+    match folder.map(Path::to_path_buf).or_else(|| std::env::var_os("CLAUDE_CONFIG_DIR").map(PathBuf::from)) {
+        Some(folder) => folder.join(".claude.json"),
+        None => home().join(".claude.json"),
+    }
+}
+
+/// A Claude account Pulse added: a folder of Pulse's own that Claude Code is
+/// pointed at, so it keeps that login there and renews it there, apart from
+/// the one it is signed in to itself.
+pub fn claude_account_dir(slot: &str) -> PathBuf {
+    data_dir().join("accounts").join(slot)
+}
+
 /// Codex's own folder. It honours `CODEX_HOME`, so Pulse does too.
 pub fn codex_dir() -> PathBuf {
     std::env::var_os("CODEX_HOME")

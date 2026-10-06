@@ -27,7 +27,7 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// No console window flashes up for a child of a GUI app.
 #[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+pub(crate) const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// The account's limits, as `account/rateLimits/read` reports them.
 pub async fn rate_limits() -> Result<Value, AppServerError> {
@@ -117,7 +117,7 @@ async fn answer(
 
 /// The whole tree, not only the process started: an npm shim is `cmd` →
 /// `node` → `codex.exe`, and killing the first leaves the other two behind.
-async fn shut_down(child: &mut tokio::process::Child, pid: Option<u32>) {
+pub(crate) async fn shut_down(child: &mut tokio::process::Child, pid: Option<u32>) {
     #[cfg(windows)]
     if let Some(pid) = pid {
         let mut taskkill = tokio::process::Command::new("taskkill");
@@ -149,7 +149,7 @@ fn locate() -> Option<PathBuf> {
 /// PATH first, then where the usual installers put things. A GUI app on
 /// Windows inherits the user's PATH, but a login-item launch can predate a
 /// change to it, so the common places are listed too.
-fn search_folders() -> Vec<PathBuf> {
+pub(crate) fn search_folders() -> Vec<PathBuf> {
     let mut folders: Vec<PathBuf> = std::env::var_os("PATH")
         .map(|path| std::env::split_paths(&path).collect())
         .unwrap_or_default();

@@ -53,7 +53,7 @@ What keeps the two apart:
 | Process          | `pulse.exe`                             | `Pulse Dev.exe` (`pulse.exe` for `app:dev`)  |
 | Open at login    | set on first launch                     | never set on its own                         |
 | Updates          | checks the feed, offers each version    | never — its Settings say so                  |
-| Version in About | `0.1.6`                                 | `0.1.6-dev`                                  |
+| Version in About | `0.1.7`                                 | `0.1.7-dev`                                  |
 
 The separate identifier gives Pulse Dev its own single-instance lock and
 WebView2 profile, and a separate product name its own login-item entry. The
@@ -62,8 +62,12 @@ separate data folder comes from the `dev-copy` Cargo feature, which
 too, whichever config it was built with.
 
 Pulse Dev asks the same endpoints with the same logins as Pulse does, so
-running both roughly doubles how often each service is asked. Neither writes
-to the login files.
+running both roughly doubles how often each service is asked. Claude accounts
+added in Pulse Dev are its own, in `%APPDATA%\Pulse Dev\accounts`, but Claude
+Code's own login is shared: **Use in Claude Code** in Pulse Dev changes which
+account Claude Code is signed in to, for the installed Pulse and every Claude
+Code window too. Pulse writes no login otherwise; an expired one is renewed by
+Claude Code itself.
 
 Useful while testing:
 

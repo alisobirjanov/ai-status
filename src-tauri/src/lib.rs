@@ -5,6 +5,7 @@
 //! pointer is. The pages only draw what they are sent and say what was
 //! clicked.
 
+mod accounts;
 mod adaptive;
 mod cache;
 mod i18n;
@@ -15,6 +16,7 @@ mod providers;
 mod report;
 mod settings;
 mod store;
+mod switch;
 mod tray;
 mod updater;
 
@@ -24,9 +26,9 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
-use model::Provider;
+use model::{AccountId, Provider};
 use panel::{Layout, PanelState, Rect};
-use settings::{RingShows, Settings, Theme};
+use settings::{RailFollows, RingShows, Settings, Theme};
 use store::{AppState, Snapshot, Store};
 
 const SETTINGS_LABEL: &str = "settings";
@@ -63,7 +65,9 @@ fn get_layout(app: AppHandle) -> Option<Layout> {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SettingsPatch {
-    enabled: Option<Vec<Provider>>,
+    enabled: Option<Vec<AccountId>>,
+    rail_follows: Option<RailFollows>,
+    says_who_is_free: Option<bool>,
     codex_source: Option<providers::codex::Source>,
     /// 0 is adaptive.
     refresh_minutes: Option<u32>,
@@ -88,6 +92,8 @@ impl SettingsPatch {
         let defaults = Settings::default();
         SettingsPatch {
             enabled: None,
+            rail_follows: Some(defaults.rail_follows),
+            says_who_is_free: Some(defaults.says_who_is_free),
             codex_source: Some(defaults.codex_source),
             refresh_minutes: Some(defaults.refresh_minutes.unwrap_or(0)),
             shows_remaining: Some(defaults.shows_remaining),
@@ -113,6 +119,12 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
         if !enabled.is_empty() || !settings.has_chosen {
             settings.enabled = enabled;
         }
+    }
+    if let Some(follows) = patch.rail_follows {
+        settings.rail_follows = follows;
+    }
+    if let Some(says) = patch.says_who_is_free {
+        settings.says_who_is_free = says;
     }
     if let Some(source) = patch.codex_source {
         settings.codex_source = source;
@@ -165,20 +177,28 @@ fn apply(settings: &mut Settings, patch: SettingsPatch) {
 
 #[tauri::command]
 fn update_settings(app: AppHandle, patch: SettingsPatch) {
+    change_settings(&app, |settings| apply(settings, patch));
+}
+
+/// Change the settings, keep them, and have everything follow: the panel,
+/// the pages, and a reading for whatever has just been switched on.
+pub(crate) fn change_settings(app: &AppHandle, change: impl FnOnce(&mut Settings)) {
     let state = app.state::<AppState>();
     let (old, new) = {
         let mut settings = state.settings.lock().unwrap();
         let old = settings.clone();
-        apply(&mut settings, patch);
+        change(&mut settings);
+        settings.normalize();
         settings.save();
         (old, settings.clone())
     };
 
     state.store.lock().unwrap().seed(&new);
 
-    let mut ask: Vec<Provider> = new.enabled.iter().copied().filter(|p| !old.is_enabled(*p)).collect();
-    if new.codex_source != old.codex_source && new.is_enabled(Provider::Codex) && !ask.contains(&Provider::Codex) {
-        ask.push(Provider::Codex);
+    let codex = Provider::Codex.id().to_string();
+    let mut ask: Vec<AccountId> = new.monitored().into_iter().filter(|id| !old.is_enabled(id)).collect();
+    if new.codex_source != old.codex_source && new.is_enabled(&codex) && !ask.contains(&codex) {
+        ask.push(codex);
     }
     // What the rings show sets how long the rail is — and across the top of
     // the screen, so do the letters beside a pair of figures.
@@ -188,11 +208,11 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
         || new.ring_shows != old.ring_shows
         || new.limit_letters != old.limit_letters
     {
-        panel::sync(&app);
+        panel::sync(app);
     }
     if new.panel_visible && !old.panel_visible {
         // The panel coming back is a reason to look now.
-        ask = new.enabled.clone();
+        ask = new.monitored();
     }
     if new.theme != old.theme {
         if let Some(window) = app.get_webview_window(SETTINGS_LABEL) {
@@ -200,8 +220,8 @@ fn update_settings(app: AppHandle, patch: SettingsPatch) {
             let _ = window.set_background_color(Some(settings_background(new.theme)));
         }
     }
-    store::emit_snapshot(&app);
-    store::refresh(&app, &ask);
+    store::emit_snapshot(app);
+    store::refresh(app, &ask);
     state.wake.notify_one();
 
     // Switched back on: look now rather than in six hours.
@@ -218,11 +238,43 @@ fn reset_settings(app: AppHandle) {
 }
 
 #[tauri::command]
-fn refresh(app: AppHandle, provider: Option<Provider>) {
-    match provider {
-        Some(provider) => store::refresh(&app, &[provider]),
+fn refresh(app: AppHandle, account: Option<AccountId>) {
+    match account {
+        Some(account) => store::refresh(&app, &[account]),
         None => store::refresh_all(&app),
     }
+}
+
+/// Settings' "Add Claude account", or "Sign in again" on one: Claude Code
+/// opens the browser, and the account is there once it has been signed in to.
+#[tauri::command]
+fn sign_in_claude(app: AppHandle, account: Option<AccountId>) {
+    accounts::sign_in(&app, account);
+}
+
+#[tauri::command]
+fn cancel_sign_in(app: AppHandle) {
+    accounts::cancel_sign_in(&app);
+}
+
+#[tauri::command]
+fn remove_account(app: AppHandle, account: AccountId) {
+    accounts::remove(&app, account);
+}
+
+#[tauri::command]
+fn rename_account(app: AppHandle, account: AccountId, label: String) {
+    accounts::rename(&app, account, label);
+}
+
+#[tauri::command]
+fn use_account(app: AppHandle, account: AccountId) {
+    accounts::use_in_claude_code(&app, account);
+}
+
+#[tauri::command]
+fn dismiss_switch(app: AppHandle) {
+    accounts::dismiss_switch(&app);
 }
 
 #[tauri::command]
@@ -444,6 +496,12 @@ pub fn run() {
             get_layout,
             update_settings,
             refresh,
+            sign_in_claude,
+            cancel_sign_in,
+            remove_account,
+            rename_account,
+            use_account,
+            dismiss_switch,
             set_hit_rects,
             layout_drawn,
             note_looked,
@@ -540,7 +598,11 @@ mod tests {
     #[test]
     fn a_reset_keeps_the_services_and_where_the_rail_is() {
         let mut settings = Settings {
-            enabled: vec![Provider::Codex],
+            enabled: vec!["codex".into(), "claudeCode".into()],
+            claude_accounts: vec!["a1".into()],
+            account_labels: [("claudeCode#a1".to_string(), "Work".to_string())].into(),
+            rail_follows: RailFollows::EachInTurn,
+            says_who_is_free: false,
             has_chosen: true,
             codex_source: providers::codex::Source::Tooling,
             refresh_minutes: Some(5),
@@ -563,7 +625,12 @@ mod tests {
         };
         apply(&mut settings, SettingsPatch::defaults());
 
-        assert_eq!(settings.enabled, vec![Provider::Codex]);
+        assert_eq!(settings.enabled, vec!["codex", "claudeCode"]);
+        assert_eq!(settings.rail_follows, RailFollows::InUse);
+        assert!(settings.says_who_is_free);
+        // Accounts are not settings: a reset keeps them, and what they are called.
+        assert_eq!(settings.claude_accounts, vec!["a1"]);
+        assert_eq!(settings.account_labels["claudeCode#a1"], "Work");
         assert!(settings.has_chosen);
         assert_eq!(settings.rail_position, Some((10, 20)));
         assert_eq!(settings.rail_dock, Some(panel::Side::Left));
@@ -572,6 +639,8 @@ mod tests {
         // Everything else is as a first launch has it.
         let rest = Settings {
             enabled: Vec::new(),
+            claude_accounts: Vec::new(),
+            account_labels: Default::default(),
             has_chosen: false,
             rail_position: None,
             rail_dock: None,
@@ -584,8 +653,8 @@ mod tests {
 
     #[test]
     fn the_last_service_stays_on() {
-        let mut settings = Settings { enabled: vec![Provider::ClaudeCode], has_chosen: true, ..Settings::default() };
+        let mut settings = Settings { enabled: vec!["claudeCode".into()], has_chosen: true, ..Settings::default() };
         apply(&mut settings, SettingsPatch { enabled: Some(Vec::new()), ..Default::default() });
-        assert_eq!(settings.enabled, vec![Provider::ClaudeCode]);
+        assert_eq!(settings.enabled, vec!["claudeCode"]);
     }
 }

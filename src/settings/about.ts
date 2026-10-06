@@ -175,7 +175,7 @@ export function about(update: (patch: SettingsPatch) => void): About {
       "div",
       "privacy-tiles",
       tile(FileLock, "five", t("readsOnly"), reads),
-      tile(Globe, "week", t("talksTo"), list([t("endpointAnthropic"), t("endpointOpenAI"), t("endpointGitHub")])),
+      tile(Globe, "week", t("talksTo"), list([t("endpointAnthropic"), t("endpointOpenAI"), t("endpointGitHub"), t("claudeCodeLocal")])),
       tile(ShieldOff, "good", t("never"), list([t("neverAnalytics"), t("neverLogins")])),
     ),
   );

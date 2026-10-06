@@ -189,3 +189,31 @@
   font-weight: 500;
   color: var(--rail-text-secondary);
 }
+
+/* An initial in place of the mark, when the mark alone can't tell accounts apart. */
+.rail-face .ring .mark.monogram {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rail-face .item.nested .ring .mark.monogram {
+  font-size: 11px;
+}
+
+@keyframes turn-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.rail-face .item.turn-in {
+  animation: turn-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-face .item.turn-in {
+    animation: none;
+  }
+}

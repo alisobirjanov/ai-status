@@ -37,6 +37,15 @@ pub fn text(key: &str) -> &'static str {
         } else {
             "Install it from the tray menu or from Pulse Settings."
         },
+        // The Claude account in use has run out of a limit. In the title
+        // `{0}` is the account with room; in the body `{0}` is the one in
+        // use, `{1}` the limit it ran out of, `{2}` the free one's figures.
+        "freeTitle" => if russian { "{0} свободен" } else { "{0} has room" },
+        "freeBody" => if russian { "{0}: {1} исчерпан. Свободный: {2}." } else { "{0} hit its {1}. This one: {2}." },
+        "fiveHourLimit" => if russian { "5-часовой лимит" } else { "5-hour limit" },
+        "weeklyLimit" => if russian { "недельный лимит" } else { "weekly limit" },
+        "fiveHour" => if russian { "5 ч" } else { "5-hour" },
+        "weekly" => if russian { "неделя" } else { "weekly" },
         _ => "",
     }
 }

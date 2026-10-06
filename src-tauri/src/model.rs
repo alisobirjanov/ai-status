@@ -21,8 +21,6 @@ pub enum Provider {
 }
 
 impl Provider {
-    pub const ALL: [Provider; 2] = [Provider::ClaudeCode, Provider::Codex];
-
     pub fn id(self) -> &'static str {
         match self {
             Provider::ClaudeCode => "claudeCode",
@@ -37,6 +35,37 @@ impl Provider {
             Provider::Codex => "Codex",
         }
     }
+}
+
+/// One login Pulse watches. A provider's first account is the provider's own
+/// id (`claudeCode`), so settings and readings from before there could be
+/// more than one carry over as they are. Claude Code can have more:
+/// `claudeCode#<slot>`, as the macOS app writes them (`AccountKey`).
+pub type AccountId = String;
+
+/// The provider an account id belongs to; `None` for one this version
+/// doesn't know.
+pub fn provider_of(id: &str) -> Option<Provider> {
+    let (provider, slot) = match id.split_once('#') {
+        Some((provider, slot)) => (provider, Some(slot)),
+        None => (id, None),
+    };
+    match (provider, slot) {
+        ("claudeCode", None) => Some(Provider::ClaudeCode),
+        ("claudeCode", Some(slot)) if is_slot(slot) => Some(Provider::ClaudeCode),
+        ("codex", None) => Some(Provider::Codex),
+        _ => None,
+    }
+}
+
+/// The slot of an added account: `claudeCode#a1b2` → `a1b2`.
+pub fn slot_of(id: &str) -> Option<&str> {
+    id.split_once('#').map(|(_, slot)| slot).filter(|slot| is_slot(slot))
+}
+
+/// A slot names a folder, so it is kept to letters, digits and dashes.
+pub fn is_slot(slot: &str) -> bool {
+    !slot.is_empty() && slot.len() <= 40 && slot.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
 /// What kind of window this is, kept as meaning rather than text so the
@@ -110,6 +139,8 @@ impl Reason {
 pub enum Route {
     Endpoint,
     AppServer,
+    /// Claude Code itself, asked for its usage once a login had expired.
+    ClaudeCode,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -268,6 +299,19 @@ mod tests {
         let current = usage.current(now).unwrap();
         assert_eq!(current.windows.len(), 1);
         assert_eq!(current.windows[0].id, "kept");
+    }
+
+    #[test]
+    fn account_ids() {
+        assert_eq!(provider_of("claudeCode"), Some(Provider::ClaudeCode));
+        assert_eq!(provider_of("claudeCode#a1b2-c3"), Some(Provider::ClaudeCode));
+        assert_eq!(provider_of("codex"), Some(Provider::Codex));
+        assert_eq!(provider_of("codex#a1"), None);
+        assert_eq!(provider_of("claudeCode#"), None);
+        assert_eq!(provider_of(r"claudeCode#..\x"), None);
+        assert_eq!(provider_of("somethingNew"), None);
+        assert_eq!(slot_of("claudeCode#a1b2"), Some("a1b2"));
+        assert_eq!(slot_of("claudeCode"), None);
     }
 
     #[test]
