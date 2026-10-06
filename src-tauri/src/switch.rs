@@ -1,5 +1,5 @@
 //! Which account Claude Code itself is signed in to, changed without signing
-//! in again: an account Pulse holds hands Claude Code its login.
+//! in again: an account Dipstick holds hands Claude Code its login.
 //!
 //! Claude Code keeps a login in two files: the tokens in `.credentials.json`,
 //! whose they are in `.claude.json`. Signing in to another account with
@@ -263,7 +263,7 @@ fn write_whole(path: &Path, bytes: &[u8]) -> Result<(), Problem> {
         std::fs::create_dir_all(parent).map_err(|_| Problem::Failed)?;
     }
     let mut temporary = path.as_os_str().to_owned();
-    temporary.push(".pulse");
+    temporary.push(".dipstick");
     let temporary = PathBuf::from(temporary);
     std::fs::write(&temporary, bytes).map_err(|_| Problem::Failed)?;
     for attempt in 0..20 {
@@ -380,7 +380,7 @@ mod tests {
 
     impl Scratch {
         fn new(name: &str) -> Scratch {
-            let dir = std::env::temp_dir().join(format!("pulse-switch-{name}-{}", std::process::id()));
+            let dir = std::env::temp_dir().join(format!("dipstick-switch-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();
             Scratch(dir)

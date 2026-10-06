@@ -1,4 +1,4 @@
-//! The notification-area icon: the always-there way into Pulse, whether or
+//! The notification-area icon: the always-there way into Dipstick, whether or
 //! not the panel is showing.
 
 use std::sync::Mutex;

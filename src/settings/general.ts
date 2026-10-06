@@ -1,5 +1,5 @@
-// General: the live preview beside what it previews — the services Pulse
-// reads, how the rail looks, when Pulse looks, and the theme it is all in.
+// General: the live preview beside what it previews — the services Dipstick
+// reads, how the rail looks, when Dipstick looks, and the theme it is all in.
 
 import { invoke } from "@tauri-apps/api/core";
 import {

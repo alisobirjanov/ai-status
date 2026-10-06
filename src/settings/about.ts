@@ -1,5 +1,5 @@
-// About: which Pulse this is and whether a newer one is out, what is new in
-// it, and everything Pulse touches.
+// About: which Dipstick this is and whether a newer one is out, what is new in
+// it, and everything Dipstick touches.
 
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -23,7 +23,7 @@ import {
 import { locale, t } from "../shared/i18n";
 import type { SettingsPatch, Snapshot, UpdateInfo } from "../shared/types";
 import { entry, points } from "./changelog";
-import { brandMark, button, drawIn, el, icon, reveal, row, sectionHead, segmented, soonBadge, stageHead, toggle } from "./dom";
+import { brandMark, button, el, fillIn, icon, reveal, row, sectionHead, segmented, soonBadge, stageHead, toggle } from "./dom";
 
 /** Where the page may send somebody: `Link` in `lib.rs`. */
 type Link = "issues" | "source" | "changelog" | "dataFolder";
@@ -49,7 +49,7 @@ export interface About {
   element: HTMLElement;
   apply(snapshot: Snapshot): void;
   applyUpdate(info: UpdateInfo): void;
-  /** Draws the mark in each time the page comes up. */
+  /** Fills the mark in each time the page comes up. */
   shown(): void;
   tick(): void;
 }
@@ -57,7 +57,7 @@ export interface About {
 export function about(update: (patch: SettingsPatch) => void): About {
   // The stage
 
-  const logo = brandMark(108, 10.8, 8);
+  const logo = brandMark(116);
   const version = el("p", "about-version");
   const pill = el("p", "status-pill");
   const actionLabel = el("span");
@@ -77,8 +77,8 @@ export function about(update: (patch: SettingsPatch) => void): About {
   const stage = el(
     "aside",
     "stage about-stage",
-    stageHead("Pulse", t("forWindows")),
-    el("div", "about-hero", el("div", "logo-halo", logo), el("h1", "about-name", "Pulse"), version, pill),
+    stageHead("Dipstick", t("forWindows")),
+    el("div", "about-hero", el("div", "logo-halo", logo), el("h1", "about-name", "Dipstick"), version, pill),
     el("div", "about-actions", action, progress, lastChecked, detail),
     el("p", "disclaimer", t("disclaimer")),
   );
@@ -292,7 +292,7 @@ export function about(update: (patch: SettingsPatch) => void): About {
     },
     applyUpdate,
     shown() {
-      logo.querySelectorAll("circle").forEach((circle, index) => drawIn(circle, 0, 120 + index * 140, 900));
+      logo.querySelectorAll<SVGRectElement>(".stick-fill").forEach((fill, index) => fillIn(fill, 120 + index * 140, 900));
     },
     tick() {
       if (info) applyUpdate(info);

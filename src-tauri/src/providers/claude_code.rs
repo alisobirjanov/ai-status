@@ -1,10 +1,10 @@
-//! Claude Code itself, run as any session of it would be, for what Pulse
+//! Claude Code itself, run as any session of it would be, for what Dipstick
 //! can't do without holding a Claude login of its own: renewing one that has
 //! expired, and signing in to begin with.
 //!
 //! Nothing here touches a token. Claude Code reads its login from the folder
 //! it is pointed at (`CLAUDE_CONFIG_DIR`, or its own) and renews it there;
-//! Pulse only asks it for the usage `/usage` shows, over its SDK mode's
+//! Dipstick only asks it for the usage `/usage` shows, over its SDK mode's
 //! control protocol. There is no prompt, so no model is called and nothing
 //! is spent; no transcript is kept; hooks are off. Asked again within a
 //! minute, Claude Code answers from what it fetched last. The protocol is
@@ -173,7 +173,7 @@ fn command(executable: &Path, folder: Option<&Path>) -> Command {
         command.env_remove(name);
     }
     // Nothing but what was asked: no telemetry or error reports, and no
-    // update installed because Pulse happened to start it.
+    // update installed because Dipstick happened to start it.
     command.env("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1").env("DISABLE_AUTOUPDATER", "1");
     // Somewhere no project is, so none of one's settings apply.
     let place = paths::data_dir();

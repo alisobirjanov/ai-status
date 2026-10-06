@@ -1,5 +1,5 @@
 [package]
-name = "pulse"
+name = "dipstick"
 version = "0.1.10"
 description = "Claude Code and Codex usage on the Windows desktop"
 edition = "2021"
@@ -7,7 +7,7 @@ rust-version = "1.80"
 license = "MIT"
 
 [lib]
-name = "pulse_lib"
+name = "dipstick_lib"
 crate-type = ["rlib"]
 
 [profile.release]
@@ -18,7 +18,7 @@ panic = "abort"
 strip = true
 
 [features]
-# A release build that runs beside the installed Pulse without touching it.
+# A release build that runs beside the installed Dipstick without touching it.
 # Turned on by `tauri.dev.conf.json`; see docs/development.md.
 dev-copy = []
 

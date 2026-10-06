@@ -2,12 +2,12 @@
 //!
 //! Port of `ClaudeCodeUsageService.swift`. On Windows Claude Code keeps its
 //! OAuth login in `%USERPROFILE%\.claude\.credentials.json` (there is no
-//! Keychain); an account Pulse added keeps it in a folder of Pulse's own
-//! (`paths::claude_account_dir`). Pulse reads a login without ever writing it.
+//! Keychain); an account Dipstick added keeps it in a folder of Dipstick's own
+//! (`paths::claude_account_dir`). Dipstick reads a login without ever writing it.
 //!
 //! The endpoint is not public API — it is what Claude Code itself calls — so
 //! it can change without notice. The saved token expires in hours and
-//! **Pulse never renews it**: refreshing would rotate the refresh token out
+//! **Dipstick never renews it**: refreshing would rotate the refresh token out
 //! from under Claude Code. Once it has expired, Claude Code is asked instead
 //! (`claude_code`), and renews it the way it always does.
 
@@ -33,7 +33,7 @@ fn headers(token: &str) -> Vec<(&'static str, String)> {
     ]
 }
 
-/// The usage of the login in `folder`: an account Pulse added, or with
+/// The usage of the login in `folder`: an account Dipstick added, or with
 /// `None` the one Claude Code is signed in to itself.
 pub async fn fetch(folder: Option<&Path>) -> ProviderUsage {
     // Read once: an expired token is still evidence of a login, which is the
@@ -62,7 +62,7 @@ pub async fn fetch(folder: Option<&Path>) -> ProviderUsage {
     from_claude_code(folder).await
 }
 
-/// Claude Code, asked for the usage of a login Pulse can't use as it stands.
+/// Claude Code, asked for the usage of a login Dipstick can't use as it stands.
 /// It renews the login as it answers, and the next pass reads it directly.
 async fn from_claude_code(folder: Option<&Path>) -> ProviderUsage {
     let answer = match claude_code::usage(folder).await {

@@ -86,7 +86,7 @@ export function alertsPage(): HTMLElement {
     el(
       "div",
       "toast-text",
-      el("div", "toast-top", el("span", undefined, "Pulse"), el("span", undefined, t("now"))),
+      el("div", "toast-top", el("span", undefined, "Dipstick"), el("span", undefined, t("now"))),
       el("div", "toast-title", t("toastTitle")),
       el("div", "toast-body", t("toastBody")),
     ),

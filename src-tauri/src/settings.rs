@@ -1,4 +1,4 @@
-//! What the reader chose, persisted as `%APPDATA%\Pulse\settings.json`.
+//! What the reader chose, persisted as `%APPDATA%\Dipstick\settings.json`.
 
 use std::collections::BTreeMap;
 
@@ -75,7 +75,7 @@ pub struct Settings {
     /// Launch at login is on by default and decided **once**: a reader who
     /// turned it off is never turned back on by a later launch.
     pub login_item_decided: bool,
-    /// Ask the feed for a new Pulse every few hours. Installing is always
+    /// Ask the feed for a new Dipstick every few hours. Installing is always
     /// the reader's call; this is only whether to look.
     pub checks_for_updates: bool,
     /// The version whose arrival has been announced, so a new version makes

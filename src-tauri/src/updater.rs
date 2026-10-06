@@ -1,16 +1,16 @@
-//! New versions of Pulse itself.
+//! New versions of Dipstick itself.
 //!
-//! Pulse asks its feed (`latest.json` on the repository's latest release,
+//! Dipstick asks its feed (`latest.json` on the repository's latest release,
 //! which the release workflow publishes) every few hours. A new version is
 //! announced once, with a notification, and stays on offer in the tray menu
 //! and in Settings.
 //! **It is installed only when somebody asks**: the installer replaces the
-//! running app, and nobody should find Pulse gone from under them.
+//! running app, and nobody should find Dipstick gone from under them.
 //!
 //! The installer is trusted because it is signed by the private half of the
 //! key whose public half is in `tauri.conf.json`, not because of where it was
-//! downloaded from. A copy built to try changes (Pulse Dev) never updates: the
-//! feed's installer is the real Pulse.
+//! downloaded from. A copy built to try changes (Dipstick Dev) never updates: the
+//! feed's installer is the real Dipstick.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -44,7 +44,7 @@ pub enum Status {
     Downloading,
     Installing,
     Failed,
-    /// Pulse Dev: there is nothing to update it to.
+    /// Dipstick Dev: there is nothing to update it to.
     Unsupported,
 }
 
@@ -193,7 +193,7 @@ fn announce_once(app: &AppHandle, version: &str) {
 }
 
 /// Download the version on offer and hand over to its installer, which
-/// replaces Pulse and starts it again. On success this never returns: the
+/// replaces Dipstick and starts it again. On success this never returns: the
 /// updater ends the process so the installer can overwrite it.
 pub async fn install(app: &AppHandle) -> Result<(), String> {
     let Some(update) = app.state::<UpdateState>().pending.lock().unwrap().clone() else {
@@ -249,7 +249,7 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
     }
 }
 
-/// The automatic check. Pulse Dev has none.
+/// The automatic check. Dipstick Dev has none.
 pub fn start(app: AppHandle) {
     if IS_DEV_COPY {
         return;

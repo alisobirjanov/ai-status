@@ -36,7 +36,7 @@ Windows подняла бы её обратно.
 
 ### Как воспроизвести
 
-При запущенном Pulse выполните в Windows PowerShell 5.1:
+При запущенном Dipstick выполните в Windows PowerShell 5.1:
 
 ```powershell
 Add-Type -AssemblyName System.Windows.Forms
@@ -53,7 +53,7 @@ public static class Z {
     return -1; }
 }
 '@
-$panel = [Z]::FindWindow("Tauri Window", "Pulse")
+$panel = [Z]::FindWindow("Tauri Window", "Dipstick")
 $form = New-Object System.Windows.Forms.Form
 $form.TopMost = $true; $form.Text = "test"
 $form.Show(); $form.Activate(); Start-Sleep -Milliseconds 800

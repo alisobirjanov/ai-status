@@ -63,7 +63,7 @@ pub async fn rate_limits() -> Result<Value, AppServerError> {
         // The protocol opens with a handshake before anything else is accepted.
         send(&mut stdin, json!({
             "jsonrpc": "2.0", "id": 1, "method": "initialize",
-            "params": { "clientInfo": { "name": "Pulse", "title": "Pulse", "version": env!("CARGO_PKG_VERSION") } }
+            "params": { "clientInfo": { "name": "Dipstick", "title": "Dipstick", "version": env!("CARGO_PKG_VERSION") } }
         }))
         .await?;
         answer(&mut lines, 1).await?;

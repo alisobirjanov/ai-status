@@ -67,7 +67,7 @@ export interface AccountView {
   email: string | null;
   /** What it is called where there is room for a word. */
   title: string;
-  /** One Pulse added, rather than the product's own login. */
+  /** One Dipstick added, rather than the product's own login. */
   added: boolean;
   /** The account Claude Code itself is signed in to. */
   inClaudeCode: boolean;
@@ -200,7 +200,7 @@ export interface SettingsPatch {
   checksForUpdates?: boolean;
 }
 
-/** A new version of Pulse itself (`src-tauri/src/updater.rs`). */
+/** A new version of Dipstick itself (`src-tauri/src/updater.rs`). */
 export type UpdateStatus =
   | "idle"
   | "checking"

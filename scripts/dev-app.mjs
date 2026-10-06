@@ -1,5 +1,5 @@
-// "Pulse Dev": a release build of this checkout that runs beside the
-// installed Pulse without touching it — its own identifier, data folder,
+// "Dipstick Dev": a release build of this checkout that runs beside the
+// installed Dipstick without touching it — its own identifier, data folder,
 // tray icon and executable name. See docs/development.md.
 //
 //   node scripts/dev-app.mjs         build it, then (re)start it
@@ -12,10 +12,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const built = join(root, "src-tauri", "target", "release", "pulse.exe");
+const built = join(root, "src-tauri", "target", "release", "dipstick.exe");
 const folder = join(root, ".dev-app");
-// Its own image name, so stopping it can never stop the installed pulse.exe.
-const image = "Pulse Dev.exe";
+// Its own image name, so stopping it can never stop the installed dipstick.exe.
+const image = "Dipstick Dev.exe";
 const exe = join(folder, image);
 
 function sleep(ms) {
@@ -23,7 +23,7 @@ function sleep(ms) {
 }
 
 function stop() {
-  // Forced: a Pulse with its tray icon up outlives a polite close. Nothing
+  // Forced: a Dipstick with its tray icon up outlives a polite close. Nothing
   // is lost — settings are written the moment they change.
   const result = spawnSync("taskkill", ["/IM", image, "/T", "/F"], { stdio: "ignore" });
   return result.status === 0;

@@ -63,7 +63,7 @@ pub struct AccountView {
     /// more than one Claude account, the name on its email; the product's
     /// name otherwise.
     pub title: String,
-    /// One Pulse added, rather than the product's own login.
+    /// One Dipstick added, rather than the product's own login.
     pub added: bool,
     /// The account Claude Code itself is signed in to.
     pub in_claude_code: bool,
@@ -115,7 +115,7 @@ pub enum SignInProblem {
     /// Nobody signed in within the time given.
     TimedOut,
     Failed,
-    /// The account signed in to is one Pulse already has.
+    /// The account signed in to is one Dipstick already has.
     AlreadyAdded,
     TooMany,
 }

@@ -3,7 +3,7 @@
 //! Port of `CodexUsageService.swift`. The main path reads the OAuth login
 //! Codex saved in `%USERPROFILE%\.codex\auth.json` and asks
 //! `chatgpt.com/backend-api/wham/usage` — not public API, what Codex's own
-//! client calls. The saved token expires and nothing renews it for Pulse, so
+//! client calls. The saved token expires and nothing renews it for Dipstick, so
 //! when it is missing or refused this falls back to `codex app-server`, which
 //! is signed in on its own terms and renews its credentials itself.
 

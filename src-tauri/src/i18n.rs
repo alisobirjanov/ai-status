@@ -24,18 +24,18 @@ pub fn text(key: &str) -> &'static str {
         "hidePanel" => if russian { "Скрыть панель" } else { "Hide Panel" },
         "refresh" => if russian { "Обновить сейчас" } else { "Refresh Now" },
         "settings" => if russian { "Настройки…" } else { "Settings…" },
-        "quit" => if russian { "Выйти из Pulse" } else { "Quit Pulse" },
-        "settingsTitle" => if russian { "Настройки Pulse" } else { "Pulse Settings" },
+        "quit" => if russian { "Выйти из Dipstick" } else { "Quit Dipstick" },
+        "settingsTitle" => if russian { "Настройки Dipstick" } else { "Dipstick Settings" },
         // Beside a ring's two figures: the 5-hour limit and the weekly one.
         "fiveHourLetter" => if russian { "ч" } else { "h" },
         "weeklyLetter" => if russian { "н" } else { "w" },
-        // A new version of Pulse. `{0}` is the version.
+        // A new version of Dipstick. `{0}` is the version.
         "installUpdate" => if russian { "Установить обновление {0}…" } else { "Install Update {0}…" },
-        "updateTitle" => if russian { "Вышла версия Pulse {0}" } else { "Pulse {0} is available" },
+        "updateTitle" => if russian { "Вышла версия Dipstick {0}" } else { "Dipstick {0} is available" },
         "updateBody" => if russian {
-            "Установить её можно из меню в трее или в настройках Pulse."
+            "Установить её можно из меню в трее или в настройках Dipstick."
         } else {
-            "Install it from the tray menu or from Pulse Settings."
+            "Install it from the tray menu or from Dipstick Settings."
         },
         // The Claude account in use has run out of a limit. In the title
         // `{0}` is the account with room; in the body `{0}` is the one in

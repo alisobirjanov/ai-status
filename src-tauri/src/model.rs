@@ -2,7 +2,7 @@
 //!
 //! Port of `UsageWindow` / `ProviderUsage` from the macOS app
 //! (`Sources/Pulse/Usage/ProviderUsage.swift`). Every figure here is one the
-//! provider stated: Pulse never derives a percentage of its own.
+//! provider stated: Dipstick never derives a percentage of its own.
 
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +37,7 @@ impl Provider {
     }
 }
 
-/// One login Pulse watches. A provider's first account is the provider's own
+/// One login Dipstick watches. A provider's first account is the provider's own
 /// id (`claudeCode`), so settings and readings from before there could be
 /// more than one carry over as they are. Claude Code can have more:
 /// `claudeCode#<slot>`, as the macOS app writes them (`AccountKey`).
@@ -148,7 +148,7 @@ pub enum Route {
 pub struct ProviderUsage {
     pub provider: Provider,
     pub windows: Vec<UsageWindow>,
-    /// When the provider's figures were taken, not when Pulse asked. Unix ms.
+    /// When the provider's figures were taken, not when Dipstick asked. Unix ms.
     pub observed_at: Option<i64>,
     pub state: State,
     pub reason: Option<Reason>,

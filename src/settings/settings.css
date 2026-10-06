@@ -126,6 +126,19 @@ ul {
   stroke: var(--track);
 }
 
+/* The mark (`brandMark`): Claude orange, Codex lilac. */
+.stick-track {
+  fill: var(--track);
+}
+
+.stick-claude {
+  fill: var(--accent);
+}
+
+.stick-codex {
+  fill: var(--weekly);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1452,9 +1465,7 @@ main {
   margin-bottom: 22px;
   display: grid;
   place-items: center;
-  border: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.06));
-  border-radius: 50%;
-  background: radial-gradient(circle, light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.1)), transparent 70%);
+  background: radial-gradient(circle, light-dark(rgb(240 101 47 / 0.1), rgb(255 122 69 / 0.12)), transparent 70%);
 }
 
 .about-name {

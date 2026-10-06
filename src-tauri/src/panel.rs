@@ -356,7 +356,7 @@ pub fn sync(app: &AppHandle) {
 fn create(app: &AppHandle, items: Items) -> Option<WebviewWindow> {
     let (width, height) = window_size(items, Side::Right);
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
-        .title("Pulse")
+        .title("Dipstick")
         .inner_size(width, height)
         .transparent(true)
         .decorations(false)

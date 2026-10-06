@@ -1,4 +1,4 @@
-// Accounts: every Claude account Pulse reads, side by side — how much of
+// Accounts: every Claude account Dipstick reads, side by side — how much of
 // each limit is gone, when it comes back, and which one Claude Code is in.
 // One is added by signing in in the browser, and handed to Claude Code with
 // a click; nobody types a command.
@@ -324,7 +324,7 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     refresh.title = t("refresh");
     refresh.addEventListener("click", () => void invoke("refresh", { account: id }));
 
-    // "…": rename, and for one Pulse added, remove.
+    // "…": rename, and for one Dipstick added, remove.
     const more = button("icon-button", icon(Ellipsis, 15));
     more.setAttribute("aria-label", t("moreActions"));
     more.setAttribute("aria-haspopup", "menu");
@@ -391,7 +391,7 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
       field.select();
     });
 
-    // Claude Code's own login is not Pulse's to remove. Two clicks: one to ask, one to mean it.
+    // Claude Code's own login is not Dipstick's to remove. Two clicks: one to ask, one to mean it.
     if (account.added) {
       const item = button("menu-item danger", icon(Trash2, 14), el("span", undefined, t("removeAccount")));
       item.setAttribute("role", "menuitem");
@@ -508,7 +508,7 @@ export function accounts(update: (patch: SettingsPatch) => void): AccountsPage {
     card.refresh.title = refreshHint(account);
     card.refresh.setAttribute("aria-label", `${t("refresh")} ${account.title}`);
 
-    // Any account Pulse added can be the one Claude Code is in, so long as its login works.
+    // Any account Dipstick added can be the one Claude Code is in, so long as its login works.
     const switching = snap.switch?.waiting === true;
     const mine = switching && snap.switch?.account === account.id;
     card.use.hidden = !account.added || account.inClaudeCode || gone;
