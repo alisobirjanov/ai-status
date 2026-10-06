@@ -19,7 +19,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import { colours, isSpent, percentText, reasonText, relative, resetText, shownFraction, tint, windowName } from "../shared/format";
+import { TURN_MS, claudeAccounts, railAccounts as onRail, takesTurns } from "../shared/accounts";
+import { colours, isSpent, percentText, reasonText, relative, resetText, shortWindowName, shownFraction, tint, untilText, windowName } from "../shared/format";
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
 import { RING, ringItem, shownWindows, svg } from "../shared/rail";
@@ -106,7 +107,12 @@ let turnVelocity = 0;
 let frame = 0;
 
 function railAccounts(): AccountView[] {
-  return snapshot?.accounts.filter((account) => account.enabled) ?? [];
+  return snapshot ? onRail(snapshot) : [];
+}
+
+/** The accounts a ring stands for: a Claude ring, every Claude account. */
+function behind(account: AccountView): AccountView[] {
+  return account.provider === "claudeCode" && snapshot ? claudeAccounts(snapshot) : [account];
 }
 
 /** Whether the rail lies across the top of the screen rather than down a side. */
@@ -134,9 +140,13 @@ function renderRail() {
   });
   rail.classList.toggle("across", across);
   const settings = snapshot.settings;
+  const before = Array.from(rail.children, (item) => (item as HTMLElement).dataset.account);
   rail.replaceChildren(
     ...railAccounts().map((account, index) => {
       const item = ringItem(account, settings);
+      item.dataset.account = account.id;
+      // Another account's turn: it comes in rather than being swapped in.
+      if (before[index] && before[index] !== account.id) item.classList.add("turn-in");
       const start = `${itemStart(index)}px`;
       const length = `${layout!.itemLength}px`;
       Object.assign(item.style, across ? { left: start, width: length } : { top: start, height: length });
@@ -145,6 +155,18 @@ function renderRail() {
   );
   // Redrawn while it turns, it goes on turning.
   placeParts();
+  nextTurn();
+}
+
+/** Accounts taking turns on the rail: the next one's, on the turn of the clock. */
+let turnTimer: number | undefined;
+function nextTurn() {
+  window.clearTimeout(turnTimer);
+  if (!snapshot || !takesTurns(snapshot)) return;
+  turnTimer = window.setTimeout(() => {
+    renderRail();
+    drawSurface();
+  }, TURN_MS - (Date.now() % TURN_MS) + 20);
 }
 
 // MARK: - The turn
@@ -539,10 +561,17 @@ function row(window: UsageWindow): HTMLElement {
   const element = document.createElement("div");
   element.className = "row";
 
-  const title = document.createElement("div");
+  // What the limit is, and how long until it resets.
+  const head = document.createElement("div");
+  head.className = "row-head";
+  const title = document.createElement("span");
   title.className = "row-title";
   title.textContent = windowName(window);
-  element.appendChild(title);
+  const until = document.createElement("span");
+  until.className = "until";
+  until.textContent = untilText(window);
+  head.append(title, until);
+  element.appendChild(head);
 
   const bar = document.createElement("div");
   bar.className = "bar";
@@ -577,16 +606,88 @@ function paragraph(className: string, text: string): HTMLElement {
   return element;
 }
 
+/** Which account a card is, once there is more than one it could be. */
+function whoText(account: AccountView): string | null {
+  const several = account.provider === "claudeCode" && (snapshot?.settings.claudeAccounts.length ?? 0) > 0;
+  if (!several && !account.label) return null;
+  return [account.label, account.email ?? (account.label ? null : account.title)].filter(Boolean).join(" · ");
+}
+
+/** One account among several on a card: what it is called, and a line for each limit. */
+function accountBlock(account: AccountView): HTMLElement {
+  const settings = snapshot!.settings;
+  const block = document.createElement("div");
+  block.className = "account-block";
+  const head = document.createElement("div");
+  head.className = "account-head";
+  const name = document.createElement("span");
+  name.className = "account-name";
+  name.textContent = account.title;
+  head.appendChild(name);
+  if (account.inClaudeCode) {
+    const badge = document.createElement("span");
+    badge.className = "account-badge";
+    badge.textContent = t("inClaudeCode");
+    head.appendChild(badge);
+  }
+  block.appendChild(head);
+
+  const usage = account.usage;
+  if (usage.state === "unavailable") {
+    if (usage.reason) block.appendChild(paragraph("message", reasonText(usage.reason)));
+    return block;
+  }
+  const limits = usage.windows.filter((window) => window.kind === "fiveHour" || window.kind === "weekly");
+  for (const window of limits.length ? limits : usage.windows) {
+    const line = document.createElement("div");
+    line.className = "limit-line";
+    const label = document.createElement("span");
+    label.className = "limit-name";
+    label.textContent = shortWindowName(window);
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    const fill = document.createElement("div");
+    const fraction = Math.min(Math.max(shownFraction(window, settings.showsRemaining), 0), 1);
+    fill.style.width = fraction > 0 ? `max(${fraction * 100}%, 4px)` : "0";
+    fill.style.backgroundColor = tint(window, settings.warningAt);
+    bar.appendChild(fill);
+    const figure = document.createElement("span");
+    figure.className = "figure";
+    figure.textContent = percentText(window, settings.showsRemaining);
+    if (isSpent(window)) figure.style.color = colours.exhausted;
+    const until = document.createElement("span");
+    until.className = "until";
+    until.textContent = untilText(window);
+    line.append(label, bar, figure, until);
+    block.appendChild(line);
+  }
+  return block;
+}
+
 function cardBody(account: AccountView): HTMLElement {
   const usage = account.usage;
   const body = document.createElement("div");
   body.className = "card-body";
+
+  // A Claude ring with several accounts behind it: every one of them.
+  const accounts = behind(account);
+  if (accounts.length > 1) {
+    const header = document.createElement("div");
+    header.className = "card-header";
+    header.appendChild(icon(account.provider, 16));
+    header.appendChild(document.createTextNode(t("usageTitle", account.name)));
+    body.classList.add("several");
+    body.append(header, ...accounts.map(accountBlock));
+    return body;
+  }
 
   const header = document.createElement("div");
   header.className = "card-header";
   header.appendChild(icon(account.provider, 16));
   header.appendChild(document.createTextNode(t("usageTitle", account.name)));
   body.appendChild(header);
+  const who = whoText(account);
+  if (who) body.appendChild(paragraph("card-account", who));
 
   for (const window of usage.windows) body.appendChild(row(window));
 
@@ -845,9 +946,9 @@ window.addEventListener("mouseup", (event) => {
   const pressed = press;
   press = null;
   if (!pressed || pressed.dragging || event.button !== 0 || pressed.index == null) return;
-  // A click on a ring asks that provider now.
+  // A click on a ring asks every account it stands for now.
   const account = railAccounts()[pressed.index];
-  if (account) void invoke("refresh", { provider: account.provider });
+  if (account) for (const each of behind(account)) void invoke("refresh", { account: each.id });
 });
 
 for (const target of [rail, surface]) {

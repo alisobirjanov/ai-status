@@ -9,7 +9,7 @@
 use serde_json::{json, Value};
 
 use crate::cache::Cache;
-use crate::model::{now_ms, percent_value, ProviderUsage, Route, UsageWindow, WindowKind};
+use crate::model::{now_ms, percent_value, provider_of, ProviderUsage, Route, UsageWindow, WindowKind};
 use crate::settings::Settings;
 
 pub fn render() -> String {
@@ -19,21 +19,23 @@ pub fn render() -> String {
 
     // An installation that has never chosen prints an empty rail, not a
     // guess at what would be switched on.
-    let enabled = if settings.has_chosen { settings.enabled.clone() } else { Vec::new() };
+    let enabled = if settings.has_chosen { settings.monitored() } else { Vec::new() };
     let accounts: Vec<Value> = enabled
         .into_iter()
-        .map(|provider| {
+        .filter_map(|id| {
+            let provider = provider_of(&id)?;
+            let label = settings.account_labels.get(&id).map_or(provider.display_name(), String::as_str);
             let mut account = json!({
-                "id": provider.id(),
+                "id": id,
                 "provider": provider.id(),
                 "name": provider.display_name(),
-                "label": provider.display_name(),
+                "label": label,
                 "windows": [],
             });
-            if let Some(usage) = cache.reading(provider) {
+            if let Some(usage) = cache.reading(&id) {
                 fill(&mut account, &usage, now);
             }
-            account
+            Some(account)
         })
         .collect();
 
@@ -57,6 +59,7 @@ fn fill(account: &mut Value, usage: &ProviderUsage, now: i64) {
         let token = match origin {
             Route::Endpoint => "endpoint",
             Route::AppServer => "appServer",
+            Route::ClaudeCode => "claudeCode",
         };
         object.insert("source".into(), json!(token));
     }

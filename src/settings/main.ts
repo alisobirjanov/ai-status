@@ -12,6 +12,7 @@ import { locale, t, type StringKey } from "../shared/i18n";
 import { pageScheme } from "../shared/theme";
 import type { SettingsPatch, Snapshot, UpdateInfo } from "../shared/types";
 import { about } from "./about";
+import { accounts } from "./accounts";
 import { arrowKeys, brandMark, button, check, el, icon, reducedMotion, slidingThumb, soonBadge } from "./dom";
 import { general } from "./general";
 import { alertsPage, shortcutsPage } from "./soon";
@@ -67,6 +68,7 @@ function receive(next: Snapshot) {
 // MARK: - The bar
 
 const generalPage = general(update);
+const accountsPage = accounts(update);
 const aboutPage = about(update);
 
 interface Tab {
@@ -78,11 +80,12 @@ interface Tab {
 
 const pages: Tab[] = [
   { label: "tabGeneral", element: generalPage.element },
+  { label: "tabAccounts", element: accountsPage.element, shown: accountsPage.shown },
   { label: "tabAlerts", element: alertsPage(), soon: true },
   { label: "tabShortcuts", element: shortcutsPage(), soon: true },
   { label: "tabAbout", element: aboutPage.element, shown: aboutPage.shown },
 ];
-const ABOUT = 3;
+const ABOUT = 4;
 
 const tablist = el("nav", "tabs");
 tablist.setAttribute("role", "tablist");
@@ -195,6 +198,7 @@ function render() {
   applyTheme();
   devTag.hidden = !snapshot.version.endsWith("-dev");
   generalPage.apply(snapshot);
+  accountsPage.apply(snapshot);
   aboutPage.apply(snapshot);
   renderSync();
 }
@@ -223,6 +227,7 @@ await listen<UpdateInfo>("update", (event) => {
 // "Synced 2 minutes ago" and "resets in 1h 12m" keep up with the clock.
 window.setInterval(() => {
   generalPage.tick();
+  accountsPage.tick();
   aboutPage.tick();
   renderSync();
 }, 30_000);

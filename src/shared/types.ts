@@ -2,12 +2,16 @@
 // `panel.rs`). Rust is the source of truth; these only name the fields.
 
 export type Provider = "claudeCode" | "codex";
+/** One login: a provider's own is its id (`claudeCode`); an added Claude account is `claudeCode#<slot>`. */
+export type AccountId = string;
 export type WindowKind = "fiveHour" | "weekly" | "spend" | "other";
 export type UsageState = "live" | "stale" | "unavailable";
-export type Route = "endpoint" | "appServer";
+export type Route = "endpoint" | "appServer" | "claudeCode";
 export type CodexSource = "automatic" | "endpoint" | "tooling";
 export type RingShows = "fullest" | "fiveHour" | "weekly" | "bothSplit" | "bothStacked" | "bothNested";
 export type Theme = "system" | "light" | "dark";
+/** With several Claude accounts, whose rings sit on the rail. */
+export type RailFollows = "inUse" | "mostRoom" | "eachInTurn";
 /** A theme settled: what System stands for at the moment. */
 export type Scheme = Exclude<Theme, "system">;
 
@@ -53,8 +57,23 @@ export interface Check {
 }
 
 export interface AccountView {
+  id: AccountId;
   provider: Provider;
+  /** The product's name. Never translated. */
   name: string;
+  /** What the reader named it, if they did. */
+  label: string | null;
+  /** Who it is signed in as. */
+  email: string | null;
+  /** What it is called where there is room for a word. */
+  title: string;
+  /** One Pulse added, rather than the product's own login. */
+  added: boolean;
+  /** The account Claude Code itself is signed in to. */
+  inClaudeCode: boolean;
+  /** Claude Code's own login, when it is an account added as well: shown once, as that one. */
+  sameAs: AccountId | null;
+  /** Its service is switched on, so it is read. */
   enabled: boolean;
   detected: boolean;
   /** The login it is read with, the home folder written `~`. */
@@ -65,7 +84,14 @@ export interface AccountView {
 }
 
 export interface Settings {
-  enabled: Provider[];
+  /** Switched-on services, in rail order: `claudeCode` stands for every Claude account. */
+  enabled: AccountId[];
+  /** Slots of the Claude accounts added beyond Claude Code's own. */
+  claudeAccounts: string[];
+  accountLabels: Record<AccountId, string>;
+  railFollows: RailFollows;
+  /** The Claude account in use ran out: say which other one has room. */
+  saysWhoIsFree: boolean;
   hasChosen: boolean;
   codexSource: CodexSource;
   refreshMinutes: number | null;
@@ -90,6 +116,31 @@ export interface Snapshot {
   version: string;
   /** Light or dark as Windows has it, for a theme left to follow it. */
   systemTheme: Scheme;
+  /** Whether there is a Claude Code to sign in to an account with. */
+  claudeCodeFound: boolean;
+  signIn: SignIn | null;
+  switch: Switch | null;
+}
+
+export type SignInProblem = "noClaudeCode" | "timedOut" | "failed" | "alreadyAdded" | "tooMany";
+
+/** A sign-in in the browser under way, or the last one, had it not worked. */
+export interface SignIn {
+  /** Signing in again to an account there is; null adding one. */
+  account: AccountId | null;
+  waiting: boolean;
+  problem: SignInProblem | null;
+  /** Claude Code's own words. Never translated. */
+  detail: string | null;
+}
+
+export type SwitchProblem = "noLogin" | "unknown" | "failed";
+
+/** Claude Code being handed an account's login, or the last time it was. */
+export interface Switch {
+  account: AccountId;
+  waiting: boolean;
+  problem: SwitchProblem | null;
 }
 
 export interface Rect {
@@ -127,7 +178,9 @@ export interface Layout {
 }
 
 export interface SettingsPatch {
-  enabled?: Provider[];
+  enabled?: AccountId[];
+  railFollows?: RailFollows;
+  saysWhoIsFree?: boolean;
   codexSource?: CodexSource;
   /** 0 is adaptive. */
   refreshMinutes?: number;

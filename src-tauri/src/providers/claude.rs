@@ -1,19 +1,23 @@
 //! Claude Code's usage.
 //!
-//! Port of `ClaudeCodeUsageService.swift`, endpoint route only. On Windows
-//! Claude Code keeps its OAuth login in `%USERPROFILE%\.claude\.credentials.json`
-//! (there is no Keychain), and Pulse reads it without ever writing it.
+//! Port of `ClaudeCodeUsageService.swift`. On Windows Claude Code keeps its
+//! OAuth login in `%USERPROFILE%\.claude\.credentials.json` (there is no
+//! Keychain); an account Pulse added keeps it in a folder of Pulse's own
+//! (`paths::claude_account_dir`). Pulse reads a login without ever writing it.
 //!
 //! The endpoint is not public API — it is what Claude Code itself calls — so
 //! it can change without notice. The saved token expires in hours and
-//! **nothing here renews it**: refreshing would rotate the refresh token out
-//! from under Claude Code. An expired one is reported as such.
+//! **Pulse never renews it**: refreshing would rotate the refresh token out
+//! from under Claude Code. Once it has expired, Claude Code is asked instead
+//! (`claude_code`), and renews it the way it always does.
 
-use std::path::PathBuf;
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use serde_json::Value;
 
+use super::claude_code::{self, ClaudeCodeError};
 use super::http::{self, Outcome};
 use crate::model::{number, now_ms, Provider, ProviderUsage, Reason, Route, UsageWindow, WindowKind};
 use crate::paths;
@@ -29,29 +33,61 @@ fn headers(token: &str) -> Vec<(&'static str, String)> {
     ]
 }
 
-pub async fn fetch() -> ProviderUsage {
+/// The usage of the login in `folder`: an account Pulse added, or with
+/// `None` the one Claude Code is signed in to itself.
+pub async fn fetch(folder: Option<&Path>) -> ProviderUsage {
     // Read once: an expired token is still evidence of a login, which is the
     // whole difference between "sign in" and "your login expired".
-    let credentials = read_credentials();
-    let Some(credentials) = credentials else {
+    let Some(credentials) = read_credentials(folder) else {
         return ProviderUsage::unavailable(Provider::ClaudeCode, Reason::ClaudeSignInRequired).recording(Route::Endpoint);
     };
-    let Some(token) = unexpired_access_token(&credentials, now_ms()) else {
-        return ProviderUsage::unavailable(Provider::ClaudeCode, Reason::ClaudeLoginExpired).recording(Route::Endpoint);
-    };
-
-    let owned = headers(&token);
-    let borrowed: Vec<(&str, &str)> = owned.iter().map(|(k, v)| (*k, v.as_str())).collect();
-
-    let usage = match http::get_json(USAGE_URL, &borrowed).await {
-        Outcome::Ok(root) => {
-            let plan = plan_from_credentials(&credentials).or_else(|| ProfilePlan::cached_or_ask(&token));
-            parse(&root, plan)
+    if let Some(token) = unexpired_access_token(&credentials, now_ms()) {
+        let owned = headers(&token);
+        let borrowed: Vec<(&str, &str)> = owned.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        match http::get_json(USAGE_URL, &borrowed).await {
+            Outcome::Ok(root) => {
+                let plan = plan_from_credentials(&credentials).or_else(|| ProfilePlan::cached_or_ask(folder, &token));
+                return parse(&root, plan).recording(Route::Endpoint);
+            }
+            // Revoked early, or renewed elsewhere since: Claude Code knows.
+            Outcome::NeedsFreshCredentials => {}
+            Outcome::Failed(reason) => {
+                return ProviderUsage::unavailable(Provider::ClaudeCode, reason).recording(Route::Endpoint);
+            }
         }
-        Outcome::NeedsFreshCredentials => ProviderUsage::unavailable(Provider::ClaudeCode, Reason::ClaudeLoginExpired),
-        Outcome::Failed(reason) => ProviderUsage::unavailable(Provider::ClaudeCode, reason),
+    }
+    from_claude_code(folder).await
+}
+
+/// Claude Code, asked for the usage of a login Pulse can't use as it stands.
+/// It renews the login as it answers, and the next pass reads it directly.
+async fn from_claude_code(folder: Option<&Path>) -> ProviderUsage {
+    let answer = match claude_code::usage(folder).await {
+        Ok(answer) => answer,
+        // Without Claude Code there is nothing to renew it with.
+        Err(ClaudeCodeError::NotFound | ClaudeCodeError::StartFailed | ClaudeCodeError::Refused) => {
+            return ProviderUsage::unavailable(Provider::ClaudeCode, Reason::ClaudeLoginExpired).recording(Route::Endpoint);
+        }
+        Err(ClaudeCodeError::TimedOut) => {
+            return ProviderUsage::unavailable(Provider::ClaudeCode, Reason::Unreachable).recording(Route::ClaudeCode);
+        }
     };
-    usage.recording(Route::Endpoint)
+    let usage = match answer.get("rate_limits").filter(|limits| limits.is_object()) {
+        Some(limits) => {
+            let stated = answer.get("subscription_type").and_then(Value::as_str);
+            let plan = read_credentials(folder)
+                .and_then(|credentials| plan_from_credentials(&credentials))
+                .or_else(|| plan_name(stated, None, None));
+            parse(limits, plan)
+        }
+        // No subscription login there that Claude Code can use: signed out
+        // since, or one it could not renew.
+        None if read_credentials(folder).is_none() => {
+            ProviderUsage::unavailable(Provider::ClaudeCode, Reason::ClaudeSignInRequired)
+        }
+        None => ProviderUsage::unavailable(Provider::ClaudeCode, Reason::ClaudeLoginExpired),
+    };
+    usage.recording(Route::ClaudeCode)
 }
 
 /// Presence only — never the contents. Marks the chooser row as detected.
@@ -59,14 +95,54 @@ pub fn is_installed() -> bool {
     paths::claude_dir().exists()
 }
 
-/// Where Claude Code keeps its login.
-pub fn credentials_file() -> PathBuf {
-    paths::claude_dir().join(".credentials.json")
+/// Where Claude Code keeps the login of `folder`, or its own.
+pub fn credentials_file(folder: Option<&Path>) -> PathBuf {
+    folder.map(Path::to_path_buf).unwrap_or_else(paths::claude_dir).join(".credentials.json")
 }
 
-fn read_credentials() -> Option<Value> {
-    let text = std::fs::read_to_string(credentials_file()).ok()?;
+fn read_credentials(folder: Option<&Path>) -> Option<Value> {
+    let text = std::fs::read_to_string(credentials_file(folder)).ok()?;
     serde_json::from_str(&text).ok()
+}
+
+/// Who a login belongs to, as Claude Code noted it when it signed in.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Identity {
+    /// The same account signed in twice has the same one.
+    pub uuid: Option<String>,
+    pub email: Option<String>,
+}
+
+pub fn identity(folder: Option<&Path>) -> Identity {
+    // Without a login there is nobody, whatever was noted before.
+    if !credentials_file(folder).is_file() {
+        return Identity::default();
+    }
+    let account = std::fs::read_to_string(paths::claude_global_config(folder))
+        .ok()
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .and_then(|root| root.get("oauthAccount").cloned());
+    let field = |key: &str| {
+        account
+            .as_ref()
+            .and_then(|a| a.get(key))
+            .and_then(Value::as_str)
+            .filter(|v| !v.is_empty())
+            .map(str::to_string)
+    };
+    Identity { uuid: field("accountUuid"), email: field("emailAddress") }
+}
+
+/// Whose the login in `folder` is, as the login itself says when asked:
+/// `None` when it can't be asked — expired, or no answer.
+pub async fn owner(folder: Option<&Path>) -> Option<String> {
+    let token = unexpired_access_token(&read_credentials(folder)?, now_ms())?;
+    let owned = headers(&token);
+    let borrowed: Vec<(&str, &str)> = owned.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    match http::get_json(PROFILE_URL, &borrowed).await {
+        Outcome::Ok(root) => root.pointer("/account/uuid").and_then(Value::as_str).map(str::to_string),
+        _ => None,
+    }
 }
 
 fn unexpired_access_token(credentials: &Value, now: i64) -> Option<String> {
@@ -95,21 +171,24 @@ fn plan_from_credentials(credentials: &Value) -> Option<String> {
 
 /// The plan from `/api/oauth/profile`, for a login file that does not carry
 /// one. Asked rarely and never waited for: the usage reading takes whatever
-/// is known now, and a miss is filled in for the next pass.
+/// is known now, and a miss is filled in for the next pass. One per login.
 struct ProfilePlan;
 
-static PROFILE: Mutex<Option<(Option<String>, i64)>> = Mutex::new(None);
-static ASKING: Mutex<bool> = Mutex::new(false);
+/// Each login file's plan, and when it was asked.
+type Plans = HashMap<PathBuf, (Option<String>, i64)>;
+
+static PROFILE: Mutex<Option<Plans>> = Mutex::new(None);
+static ASKING: Mutex<Option<HashSet<PathBuf>>> = Mutex::new(None);
 const PROFILE_FRESH_FOR_MS: i64 = 6 * 3600 * 1000;
 
 impl ProfilePlan {
-    fn cached_or_ask(token: &str) -> Option<String> {
-        let known = PROFILE.lock().unwrap().clone();
+    fn cached_or_ask(folder: Option<&Path>, token: &str) -> Option<String> {
+        let key = credentials_file(folder);
+        let known = PROFILE.lock().unwrap().get_or_insert_with(HashMap::new).get(&key).cloned();
         let stale = known.as_ref().map_or(true, |(_, at)| now_ms() - at >= PROFILE_FRESH_FOR_MS);
         if stale {
             let mut asking = ASKING.lock().unwrap();
-            if !*asking {
-                *asking = true;
+            if asking.get_or_insert_with(HashSet::new).insert(key.clone()) {
                 let token = token.to_string();
                 tauri::async_runtime::spawn(async move {
                     let owned = headers(&token);
@@ -129,8 +208,8 @@ impl ProfilePlan {
                     };
                     // A failure is remembered too: the plan is a nicety and
                     // must never cost the reading a retry every pass.
-                    *PROFILE.lock().unwrap() = Some((name, now_ms()));
-                    *ASKING.lock().unwrap() = false;
+                    PROFILE.lock().unwrap().get_or_insert_with(HashMap::new).insert(key.clone(), (name, now_ms()));
+                    ASKING.lock().unwrap().get_or_insert_with(HashSet::new).remove(&key);
                 });
             }
         }

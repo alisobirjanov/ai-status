@@ -130,10 +130,109 @@ body {
   font-size: 12px;
 }
 
+.row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .row-title {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.until {
+  flex: none;
+  color: var(--rail-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.card-account {
+  margin-top: -6px;
+  font-size: 12px;
+  color: var(--rail-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A card for several accounts: each a name and a line for each limit. */
+.card-body.several {
+  gap: 12px;
+}
+
+.account-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+}
+
+.account-block + .account-block {
+  padding-top: 11px;
+  border-top: 1px solid var(--rail-track);
+}
+
+.account-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.account-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--rail-five-hour) 16%, transparent);
+  color: var(--rail-five-hour);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.limit-line {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 34px 62px;
+  align-items: center;
+  gap: 8px;
+}
+
+.limit-line .limit-name {
+  color: var(--rail-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.limit-line .bar {
+  height: 4px;
+}
+
+.limit-line .figure {
+  text-align: right;
+}
+
+.limit-line .until {
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-block .message {
+  font-size: 11px;
 }
 
 .bar {

@@ -83,6 +83,14 @@ export function windowName(window: UsageWindow): string {
   return window.scope ? `${base} · ${window.scope}` : base;
 }
 
+/** "5-hour", "Weekly": where the line already says it is a limit. */
+export function shortWindowName(window: UsageWindow): string {
+  if (window.scope) return windowName(window);
+  if (window.kind === "fiveHour") return t("fiveHourShort");
+  if (window.kind === "weekly") return t("weeklyShort");
+  return windowName(window);
+}
+
 function isToday(date: Date): boolean {
   const now = new Date();
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
@@ -103,6 +111,32 @@ export function resetText(window: UsageWindow): string {
     ? { hour: "numeric", minute: "2-digit" }
     : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
   return t("resets", new Intl.DateTimeFormat(locale, options).format(date));
+}
+
+/** "41m", "4h 41m", "2d 3h": how long, in the two units that matter. */
+export function duration(ms: number): string {
+  const minutes = Math.max(1, Math.round(ms / 60_000));
+  if (minutes < 60) return t("durationMinutes", String(minutes));
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t("durationHours", String(hours), String(minutes % 60));
+  return t("durationDays", String(Math.floor(hours / 24)), String(hours % 24));
+}
+
+/** "resets in 2h 14m" within a day, "resets Mon 09:00" beyond one. */
+export function resetLine(window: UsageWindow): string {
+  if (window.resetsAt == null) return "";
+  const ms = window.resetsAt - Date.now();
+  if (ms <= 0) return "";
+  if (ms < 86_400_000) return t("resetsIn", duration(ms));
+  const when = new Intl.DateTimeFormat(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date(window.resetsAt));
+  return t("resetsOn", when);
+}
+
+/** "in 4h 41m" until a limit resets; nothing without a reset still to come. */
+export function untilText(window: UsageWindow): string {
+  if (window.resetsAt == null) return "";
+  const ms = window.resetsAt - Date.now();
+  return ms > 0 ? t("inTime", duration(ms)) : "";
 }
 
 /** "5 minutes ago", "yesterday" — or "5 min. ago", short. */

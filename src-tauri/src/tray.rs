@@ -99,7 +99,7 @@ pub fn update_tooltip(app: &AppHandle, snapshot: &Snapshot) {
     let figures: Vec<String> = snapshot
         .accounts
         .iter()
-        .filter(|a| a.enabled)
+        .filter(|a| a.enabled && a.same_as.is_none())
         .map(|account| {
             let usage = &account.usage;
             let windows = settings.ring_shows.windows(usage);
@@ -118,7 +118,7 @@ pub fn update_tooltip(app: &AppHandle, snapshot: &Snapshot) {
                     if lettered { format!("{} {figure}", text(letter)) } else { figure }
                 })
                 .collect();
-            format!("{} {}", account.name, figure.join(" / "))
+            format!("{} {}", account.title, figure.join(" / "))
         })
         .collect();
     let name = crate::APP_NAME;

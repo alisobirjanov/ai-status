@@ -148,9 +148,25 @@ function ring(account: AccountView, settings: Settings, arcs: [UsageWindow | und
 
   const mark = document.createElement("div");
   mark.className = "mark";
-  mark.appendChild(icon(account.provider, markSize));
+  const initial = monogram(account, settings);
+  if (initial) {
+    mark.classList.add("monogram");
+    mark.textContent = initial;
+  } else {
+    mark.appendChild(icon(account.provider, markSize));
+  }
   ring.appendChild(mark);
   return ring;
+}
+
+/**
+ * With more than one Claude account, the rail's Claude ring could be any of
+ * them: the first letter of what it is called says which.
+ */
+function monogram(account: AccountView, settings: Settings): string | null {
+  if (account.provider !== "claudeCode" || settings.claudeAccounts.length === 0) return null;
+  const first = Array.from(account.title.trim())[0];
+  return first ? first.toLocaleUpperCase() : null;
 }
 
 /** A ring's figure, after a letter saying which limit it is when there are two. */
@@ -179,7 +195,7 @@ export function ringItem(account: AccountView, settings: Settings): HTMLElement 
   const [first, second] = shown;
   if (shown.length === 1) {
     item.append(ring(account, settings, [[first, WHOLE]]), label(first, settings));
-    item.setAttribute("aria-label", first ? `${account.name}: ${percentText(first, settings.showsRemaining)}` : account.name);
+    item.setAttribute("aria-label", first ? `${account.title}: ${percentText(first, settings.showsRemaining)}` : account.title);
     return item;
   }
 
@@ -200,6 +216,6 @@ export function ringItem(account: AccountView, settings: Settings): HTMLElement 
       item.append(ring(account, settings, [[first, WHOLE]]), firstLabel, ring(account, settings, [[second, WHOLE]]), secondLabel);
   }
   const figures = shown.filter((window) => window).map((window) => `${windowName(window!)} ${percentText(window!, settings.showsRemaining)}`);
-  item.setAttribute("aria-label", [account.name, ...figures].join(", "));
+  item.setAttribute("aria-label", [account.title, ...figures].join(", "));
   return item;
 }

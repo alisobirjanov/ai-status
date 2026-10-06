@@ -19,6 +19,7 @@ import {
   type IconNode,
 } from "lucide";
 
+import { claudeAccounts } from "../shared/accounts";
 import { reasonText, relative } from "../shared/format";
 import { icon as productMark } from "../shared/icons";
 import { t, type StringKey } from "../shared/i18n";
@@ -130,7 +131,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
 
   const cards = new Map<Provider, ServiceCard>();
   function serviceCard(provider: Provider): ServiceCard {
-    const account = snapshot?.accounts.find((a) => a.provider === provider);
+    const account = snapshot?.accounts.find((a) => a.id === provider);
     const name = account?.name ?? provider;
     const control = toggle(name, (on) => {
       const enabled = snapshot?.settings.enabled ?? [];
@@ -155,7 +156,11 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     const refresh = button("icon-button", icon(RotateCw, 15));
     refresh.setAttribute("aria-label", `${t("refresh")} ${name}`);
     refresh.title = t("refresh");
-    refresh.addEventListener("click", () => void invoke("refresh", { provider }));
+    refresh.addEventListener("click", () => {
+      // Claude is every Claude account.
+      const ids = provider === "claudeCode" && snapshot ? claudeAccounts(snapshot).map((each) => each.id) : [provider];
+      for (const id of ids) void invoke("refresh", { account: id });
+    });
 
     // The figures wrap among themselves; the refresh button keeps its corner.
     const metas = el("div", "metas", plan, checked);
@@ -283,7 +288,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     (minutes) => update({ refreshMinutes: minutes }),
   );
   const refreshAll = button("button", icon(RotateCw, 15), el("span", undefined, t("refreshAll")));
-  refreshAll.addEventListener("click", () => void invoke("refresh", { provider: null }));
+  refreshAll.addEventListener("click", () => void invoke("refresh", { account: null }));
   const login = toggle(t("launchAtLogin"), async (on) => {
     login.set(await invoke<boolean>("set_autostart", { enabled: on }));
   });
@@ -353,7 +358,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     chooser.hidden = settings.hasChosen;
     panel.hidden = refresh.hidden = appearance.hidden = !settings.hasChosen;
     for (const provider of PROVIDERS) {
-      const account = snap.accounts.find((a) => a.provider === provider);
+      const account = snap.accounts.find((a) => a.id === provider);
       let card = cards.get(provider);
       if (!card) {
         card = serviceCard(provider);
@@ -405,7 +410,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     tick() {
       if (!snapshot) return;
       for (const account of snapshot.accounts) {
-        const card = cards.get(account.provider);
+        const card = cards.get(account.id as Provider);
         if (card) applyService(card, account, snapshot);
       }
       stage.tick();

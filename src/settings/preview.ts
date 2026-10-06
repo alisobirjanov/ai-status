@@ -5,8 +5,9 @@
 
 import { MousePointerClick } from "lucide";
 
-import { colours, isSpent, percentValue, shownFraction, tint, windowName } from "../shared/format";
-import { locale, t } from "../shared/i18n";
+import { railAccounts } from "../shared/accounts";
+import { colours, isSpent, percentValue, resetLine, shownFraction, tint, windowName } from "../shared/format";
+import { t } from "../shared/i18n";
 import { ITEM_SPACING, RAIL_PAD_BOTTOM, RAIL_PAD_TOP, RAIL_WIDTH, itemHeight, ringItem, shownWindows } from "../shared/rail";
 import { applyGlass } from "../shared/theme";
 import type { AccountView, RingShows, Snapshot, UsageWindow } from "../shared/types";
@@ -14,21 +15,6 @@ import { countTo, dashLength, drawIn, el, icon, stageHead } from "./dom";
 
 /** Large enough to read, small enough that two services still fit. */
 const MAX_ZOOM = 2.4;
-
-function duration(ms: number): string {
-  const minutes = Math.max(1, Math.round(ms / 60_000));
-  return minutes < 60 ? t("durationMinutes", String(minutes)) : t("durationHours", String(Math.floor(minutes / 60)), String(minutes % 60));
-}
-
-/** "resets in 2h 14m" within a day, "resets Mon 09:00" beyond one. */
-function resetLine(window: UsageWindow): string {
-  if (window.resetsAt == null) return "";
-  const ms = window.resetsAt - Date.now();
-  if (ms <= 0) return "";
-  if (ms < 86_400_000) return t("resetsIn", duration(ms));
-  const when = new Intl.DateTimeFormat(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date(window.resetsAt));
-  return t("resetsOn", when);
-}
 
 interface LegendRow {
   element: HTMLElement;
@@ -92,7 +78,7 @@ export function preview(): Preview {
         item.style.height = `${height}px`;
         item.querySelectorAll(".ring").forEach((ring, ringIndex) => {
           for (const circle of ring.querySelectorAll<SVGCircleElement>("circle.usage")) {
-            const key = `${account.provider}:${ringIndex}:${circle.getAttribute("transform")}`;
+            const key = `${account.id}:${ringIndex}:${circle.getAttribute("transform")}`;
             circle.dataset.key = key;
             const from = before.get(key) ?? 0;
             if (Math.abs(from - dashLength(circle)) > 0.5) drawIn(circle, from, 0, 800);
@@ -105,7 +91,7 @@ export function preview(): Preview {
           const value = text?.nodeType === Node.TEXT_NODE ? /^(\d+)%$/.exec(text.textContent ?? "") : null;
           if (!text || !value) return;
           const figure = el("span");
-          const key = `${account.provider}:${labelIndex}`;
+          const key = `${account.id}:${labelIndex}`;
           figure.dataset.figure = key;
           text.replaceWith(figure);
           countTo(figure, Number(value[1]), (shown) => `${shown}%`, before.get(key) ?? 0);
@@ -147,13 +133,13 @@ export function preview(): Preview {
     for (const account of accounts) {
       const windows = shownWindows(account, snapshot.settings.ringShows).filter((window): window is UsageWindow => !!window);
       if (accounts.length > 1) {
-        const caption = captions.get(account.provider) ?? el("div", "legend-caption");
-        caption.textContent = account.name;
-        captions.set(account.provider, caption);
+        const caption = captions.get(account.id) ?? el("div", "legend-caption");
+        caption.textContent = account.title;
+        captions.set(account.id, caption);
         children.push(caption);
       }
       for (const window of windows) {
-        const key = `${account.provider}:${window.id}`;
+        const key = `${account.id}:${window.id}`;
         used.add(key);
         const row = legendRow(key);
         fill(row, window, snapshot);
@@ -167,7 +153,7 @@ export function preview(): Preview {
   function apply(snapshot: Snapshot) {
     last = snapshot;
     const settings = snapshot.settings;
-    const accounts = settings.hasChosen ? snapshot.accounts.filter((account) => account.enabled) : [];
+    const accounts = settings.hasChosen ? railAccounts(snapshot) : [];
     element.classList.toggle("empty", accounts.length === 0);
     element.classList.toggle("hidden-panel", accounts.length > 0 && !settings.panelVisible);
     note.textContent = accounts.length === 0 ? t("previewEmpty") : settings.panelVisible ? "" : t("previewHidden");
@@ -187,7 +173,7 @@ export function preview(): Preview {
       if (!last) return;
       for (const account of last.accounts) {
         for (const window of account.usage.windows) {
-          const row = rows.get(`${account.provider}:${window.id}`);
+          const row = rows.get(`${account.id}:${window.id}`);
           if (row) row.reset.textContent = resetLine(window);
         }
       }
