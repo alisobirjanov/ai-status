@@ -475,6 +475,7 @@ pub fn emit_snapshot(app: &AppHandle) {
     let settings = state.settings.lock().unwrap().clone();
     let snapshot = state.store.lock().unwrap().snapshot(&settings);
     crate::tray::update_tooltip(app, &snapshot);
+    crate::tray::update_icon(app, &snapshot);
     let _ = app.emit("snapshot", snapshot);
 }
 

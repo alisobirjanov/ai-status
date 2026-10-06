@@ -402,7 +402,7 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
 
 // MARK: - Shell
 
-fn show_settings(app: &AppHandle) {
+pub(crate) fn show_settings(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(SETTINGS_LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
@@ -457,9 +457,9 @@ fn shell_open(target: &str) {
 #[cfg(not(windows))]
 fn shell_open(_target: &str) {}
 
-/// The tray's left click. With nothing switched on there is no panel to
+/// "Show panel" in the tray's menu. With nothing switched on there is no panel to
 /// show, so this is the way to the chooser instead.
-pub(crate) fn toggle_panel(app: &AppHandle) {
+fn toggle_panel(app: &AppHandle) {
     let state = app.state::<AppState>();
     let (chosen, visible) = {
         let settings = state.settings.lock().unwrap();
