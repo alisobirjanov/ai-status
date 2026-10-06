@@ -5,6 +5,24 @@ releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
 
+## 0.1.7
+
+**Русский**
+
+- Несколько аккаунтов Claude. Добавьте их в настройках, на новой странице «Аккаунты»: нажмите «Добавить аккаунт» и войдите в браузере — набирать команды не нужно. Для каждого аккаунта видны 5-часовой и недельный лимиты, когда они сбросятся и какой из аккаунтов сейчас в Claude Code.
+- «Использовать в Claude Code»: один щелчок — и Claude Code работает от этого аккаунта везде, в терминале и в VS Code, без /login. Новые окна Claude Code сразу используют его, уже открытые перезапустите.
+- На панели — один аккаунт Claude: тот, что сейчас в Claude Code, тот, у которого больше всего запаса, или все по очереди. Карточка при наведении показывает все.
+- Когда у текущего аккаунта кончается лимит, Pulse подскажет, у какого ещё есть запас.
+- Если сохранённый вход истёк, Pulse просит Claude Code обновить его, и цифры приходят дальше, даже когда Claude Code не открыт.
+
+**English**
+
+- Several Claude accounts. Add them on the new Accounts page in Settings: click Add account and sign in in your browser — no commands to type. Each one shows its 5-hour and weekly limits, when they reset, and which account Claude Code is in.
+- Use in Claude Code: one click, and Claude Code uses that account everywhere — in a terminal, in VS Code — without /login. New Claude Code windows use it straight away; restart the ones already open.
+- The rail shows one Claude account: the one in use, the one with the most room, or each in turn. The card on hover lists them all.
+- When the account in use runs out of a limit, Pulse tells you which one still has room.
+- When a saved login has expired, Pulse asks Claude Code to renew it, so the figures keep coming even when Claude Code isn't open.
+
 ## 0.1.6
 
 **Русский**
