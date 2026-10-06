@@ -5,6 +5,16 @@ releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
 
+## 0.1.10
+
+**Русский**
+
+- Исправлено: после нескольких обновлений подряд Pulse мог надолго остаться на старых данных с надписью «Слишком частые проверки», продолжая спрашивать снова и снова. Теперь, получив такой ответ, Pulse ждёт 5 минут (или сколько попросит сервис, но не больше часа) и не спрашивает до этого. В настройках и на карточке видно, когда будет следующая проверка, а кнопка обновления до тех пор неактивна.
+
+**English**
+
+- Fixed: after a few refreshes in a row, Pulse could stay on old figures with "Checking too often" for a long time, while it kept asking again and again. Now, given that answer, Pulse waits 5 minutes (or as long as the service asks, up to an hour) and doesn't ask before then. Settings and the card show when the next check is, and the refresh button is off until then.
+
 ## 0.1.9
 
 **Русский**
