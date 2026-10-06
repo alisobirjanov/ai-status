@@ -5,6 +5,16 @@ releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
 
+## 0.1.8
+
+**Русский**
+
+- Почта аккаунтов скрыта: видно только начало, например sa****@gmail.com. Щёлкните по ней в настройках, на странице «Аккаунты», чтобы увидеть её целиком, и ещё раз, чтобы скрыть. Удобно, когда ваш экран видят другие.
+
+**English**
+
+- Account emails are hidden, showing only the start, like sa****@gmail.com. Click one on the Accounts page in Settings to see it whole, and again to hide it. Handy when others can see your screen.
+
 ## 0.1.7
 
 **Русский**
