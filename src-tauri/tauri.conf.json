@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Pulse",
-  "version": "0.1.9",
-  "identifier": "io.github.qunqin24.PulseWindows",
+  "productName": "Dipstick",
+  "version": "0.1.10",
+  "identifier": "io.github.qunqin24.DipstickWindows",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -30,7 +30,8 @@
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "installer-hooks.nsh"
       }
     },
     "createUpdaterArtifacts": true

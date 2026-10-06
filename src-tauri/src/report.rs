@@ -1,4 +1,4 @@
-//! `Pulse.exe --json`: what the running app last banked, for status lines
+//! `dipstick.exe --json`: what the running app last banked, for status lines
 //! and scripts. Same contract as the macOS app (`Docs/json-output.md`):
 //!
 //! - It prints the cache and **never fetches**. Every account carries

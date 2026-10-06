@@ -1,5 +1,5 @@
 // What the settings pages are built from: elements, icons, switches,
-// segmented choices, the arcs of Pulse's own mark, and figures that count
+// segmented choices, the arcs of Dipstick's own mark, and figures that count
 // their way to a new value.
 
 import { createElement, type IconNode } from "lucide";
@@ -336,14 +336,38 @@ export function drawIn(circle: SVGCircleElement, from = 0, delay = 0, duration =
   });
 }
 
-/** Pulse's mark: the 5-hour half above, the weekly half below. */
-export function brandMark(size: number, thickness: number, gap: number): SVGSVGElement {
-  const mark = svg("svg", { class: "brand-mark", width: size, height: size, viewBox: `0 0 ${size} ${size}`, "aria-hidden": "true" });
-  const radius = (size - thickness) / 2;
-  const sweep = 180 - 2 * gap;
-  mark.append(
-    arc(size, radius, 180 + gap, sweep, { width: thickness, className: "arc-five", round: false }),
-    arc(size, radius, gap, sweep, { width: thickness, className: "arc-week", round: false }),
-  );
+let marks = 0;
+
+/**
+ * Dipstick's mark: two sticks, Claude's orange and Codex's lilac, each
+ * filled to a level. The tray icon is the same mark filled to the figures
+ * (`tray.rs`); here it is filled to a fixed 62% and 38%.
+ */
+export function brandMark(size: number): SVGSVGElement {
+  const mark = svg("svg", { class: "brand-mark", width: size, height: size, viewBox: "0 0 100 100", "aria-hidden": "true" });
+  const defs = svg("defs", {});
+  mark.append(defs);
+  const id = `brand-mark-${++marks}`;
+  for (const [index, [left, level, className]] of ([[14, 0.62, "stick-claude"], [56, 0.38, "stick-codex"]] as const).entries()) {
+    const shape = { x: left, y: 5, width: 30, height: 90, rx: 15 };
+    const clip = svg("clipPath", { id: `${id}-${index}` });
+    clip.append(svg("rect", shape));
+    defs.append(clip);
+    const fill = svg("g", { "clip-path": `url(#${id}-${index})` });
+    fill.append(svg("rect", { ...shape, y: 5 + 90 * (1 - level), rx: 0, class: `stick-fill ${className}` }));
+    mark.append(svg("rect", { ...shape, class: "stick-track" }), fill);
+  }
   return mark;
+}
+
+/** Fills a stick of the mark up from empty to its level. */
+export function fillIn(fill: SVGRectElement, delay = 0, duration = 750) {
+  if (reducedMotion.matches) return;
+  const empty = 95 - Number(fill.getAttribute("y"));
+  fill.animate([{ transform: `translateY(${empty}px)` }, { transform: "translateY(0)" }], {
+    duration,
+    delay,
+    easing: EASE,
+    fill: "backwards",
+  });
 }

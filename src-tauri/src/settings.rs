@@ -1,4 +1,4 @@
-//! What the reader chose, persisted as `%APPDATA%\Pulse\settings.json`.
+//! What the reader chose, persisted as `%APPDATA%\Dipstick\settings.json`.
 
 use std::collections::BTreeMap;
 
@@ -75,7 +75,7 @@ pub struct Settings {
     /// Launch at login is on by default and decided **once**: a reader who
     /// turned it off is never turned back on by a later launch.
     pub login_item_decided: bool,
-    /// Ask the feed for a new Pulse every few hours. Installing is always
+    /// Ask the feed for a new Dipstick every few hours. Installing is always
     /// the reader's call; this is only whether to look.
     pub checks_for_updates: bool,
     /// The version whose arrival has been announced, so a new version makes
@@ -201,25 +201,7 @@ impl Theme {
 /// window last had its theme set.
 #[cfg(windows)]
 pub fn system_theme() -> tauri::Theme {
-    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD};
-    let wide = |text: &str| text.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
-    let (key, value) = (wide(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"), wide("AppsUseLightTheme"));
-    let mut light: u32 = 1;
-    let mut size = std::mem::size_of::<u32>() as u32;
-    // SAFETY: both names are NUL-terminated and outlive the call, and `size`
-    // is the size of the buffer `light` gives it.
-    let status = unsafe {
-        RegGetValueW(
-            HKEY_CURRENT_USER,
-            key.as_ptr(),
-            value.as_ptr(),
-            RRF_RT_REG_DWORD,
-            std::ptr::null_mut(),
-            (&mut light as *mut u32).cast(),
-            &mut size,
-        )
-    };
-    if status == 0 && light == 0 {
+    if personalized("AppsUseLightTheme") == Some(0) {
         tauri::Theme::Dark
     } else {
         tauri::Theme::Light
@@ -229,6 +211,42 @@ pub fn system_theme() -> tauri::Theme {
 #[cfg(not(windows))]
 pub fn system_theme() -> tauri::Theme {
     tauri::Theme::Light
+}
+
+/// The taskbar's own light or dark, which Windows lets differ from apps'.
+/// Unset is dark, as the taskbar was before there was a choice.
+#[cfg(windows)]
+pub fn taskbar_is_light() -> bool {
+    personalized("SystemUsesLightTheme") == Some(1)
+}
+
+#[cfg(not(windows))]
+pub fn taskbar_is_light() -> bool {
+    false
+}
+
+/// A number from Windows' Personalize settings, if it is there.
+#[cfg(windows)]
+fn personalized(name: &str) -> Option<u32> {
+    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD};
+    let wide = |text: &str| text.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (key, value) = (wide(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"), wide(name));
+    let mut number: u32 = 0;
+    let mut size = std::mem::size_of::<u32>() as u32;
+    // SAFETY: both names are NUL-terminated and outlive the call, and `size`
+    // is the size of the buffer `number` gives it.
+    let status = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            key.as_ptr(),
+            value.as_ptr(),
+            RRF_RT_REG_DWORD,
+            std::ptr::null_mut(),
+            (&mut number as *mut u32).cast(),
+            &mut size,
+        )
+    };
+    (status == 0).then_some(number)
 }
 
 /// The choices Settings offers for where red begins. A short list, not a

@@ -1,4 +1,4 @@
-//! Pulse for Windows: Claude Code and Codex usage in a floating rail.
+//! Dipstick for Windows: Claude Code and Codex usage in a floating rail.
 //!
 //! Rust owns everything that is not drawing — reading credentials, asking
 //! the endpoints, the cache, the refresh loop, the window and where the
@@ -13,6 +13,7 @@ mod model;
 mod panel;
 mod paths;
 mod providers;
+mod renamed;
 mod report;
 mod settings;
 mod store;
@@ -33,16 +34,20 @@ use store::{AppState, Snapshot, Store};
 
 const SETTINGS_LABEL: &str = "settings";
 
-/// A copy built to try changes beside the installed Pulse: any debug build,
+/// A copy built to try changes beside the installed Dipstick: any debug build,
 /// or a release built with `tauri.dev.conf.json`. It keeps its own settings
 /// and readings and is never made a login item, so running it cannot move,
-/// reconfigure or replace the Pulse somebody actually uses. The overlay also
+/// reconfigure or replace the Dipstick somebody actually uses. The overlay also
 /// gives it its own identifier and product name, which is what keeps the
 /// single-instance lock, the WebView profile and the login entry apart.
 pub(crate) const IS_DEV_COPY: bool = cfg!(any(debug_assertions, feature = "dev-copy"));
 
 /// On the tray and the data folder, so the two copies can be told apart.
-pub(crate) const APP_NAME: &str = if IS_DEV_COPY { "Pulse Dev" } else { "Pulse" };
+pub(crate) const APP_NAME: &str = if IS_DEV_COPY { "Dipstick Dev" } else { "Dipstick" };
+
+/// The name before 0.1.10, when Dipstick was Pulse. What Pulse left under it
+/// is taken over once: see `paths::data_dir` and `renamed`.
+pub(crate) const OLD_APP_NAME: &str = if IS_DEV_COPY { "Pulse Dev" } else { "Pulse" };
 
 pub(crate) const VERSION: &str =
     if IS_DEV_COPY { concat!(env!("CARGO_PKG_VERSION"), "-dev") } else { env!("CARGO_PKG_VERSION") };
@@ -353,7 +358,7 @@ fn set_autostart(app: AppHandle, enabled: bool) -> bool {
 }
 
 /// Where Settings links to. Named rather than given as a URL, so the page
-/// cannot have Pulse open anything else.
+/// cannot have Dipstick open anything else.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum Link {
@@ -397,7 +402,7 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
 
 // MARK: - Shell
 
-fn show_settings(app: &AppHandle) {
+pub(crate) fn show_settings(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(SETTINGS_LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
@@ -452,9 +457,9 @@ fn shell_open(target: &str) {
 #[cfg(not(windows))]
 fn shell_open(_target: &str) {}
 
-/// The tray's left click. With nothing switched on there is no panel to
+/// "Show panel" in the tray's menu. With nothing switched on there is no panel to
 /// show, so this is the way to the chooser instead.
-pub(crate) fn toggle_panel(app: &AppHandle) {
+fn toggle_panel(app: &AppHandle) {
     let state = app.state::<AppState>();
     let (chosen, visible) = {
         let settings = state.settings.lock().unwrap();
@@ -549,6 +554,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tray::create(&handle)?;
+            renamed::carry_login_item(&handle);
             decide_login_item(&handle);
 
             let settings = handle.state::<AppState>().settings.lock().unwrap().clone();
@@ -566,7 +572,7 @@ pub fn run() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("Pulse failed to start");
+        .expect("Dipstick failed to start");
 
     app.run(|_app, event| {
         // Closing the last window is not quitting: the tray is still there.

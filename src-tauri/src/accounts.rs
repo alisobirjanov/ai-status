@@ -1,6 +1,6 @@
 //! Claude accounts beyond the one Claude Code itself is signed in to. One is
 //! added by signing in in the browser — Claude Code does the signing in,
-//! into a folder of Pulse's own — and can then be named, signed in to again,
+//! into a folder of Dipstick's own — and can then be named, signed in to again,
 //! handed to Claude Code, and removed. Nobody types a command.
 
 use std::hash::{BuildHasher, Hasher};
@@ -160,8 +160,8 @@ pub fn cancel_sign_in(app: &AppHandle) {
     }
 }
 
-/// Remove an account Pulse added: off the rail, its readings forgotten,
-/// signed out and its folder gone. Claude Code's own login is not Pulse's to
+/// Remove an account Dipstick added: off the rail, its readings forgotten,
+/// signed out and its folder gone. Claude Code's own login is not Dipstick's to
 /// remove.
 pub fn remove(app: &AppHandle, account: AccountId) {
     let Some(slot) = slot_of(&account).map(str::to_string) else { return };
@@ -336,7 +336,7 @@ pub fn rename(app: &AppHandle, account: AccountId, label: String) {
     });
 }
 
-/// Only ever a folder of Pulse's own accounts.
+/// Only ever a folder of Dipstick's own accounts.
 fn discard(folder: &Path) {
     if folder.parent() == Some(paths::data_dir().join("accounts").as_path()) {
         let _ = std::fs::remove_dir_all(folder);

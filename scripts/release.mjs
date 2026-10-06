@@ -1,4 +1,4 @@
-// Release chores for Pulse for Windows. See docs/releasing.md.
+// Release chores for Dipstick for Windows. See docs/releasing.md.
 //
 //   node scripts/release.mjs version 0.2.0   set the version everywhere it is written
 //   node scripts/release.mjs check 0.2.0     every file agrees, and CHANGELOG.md has an entry
@@ -37,8 +37,8 @@ function write(path, text) {
 // CRLF unless told otherwise.
 /** The `[package]` version of Cargo.toml, not a dependency's. */
 const CARGO_VERSION = /(\[package\][^[]*?\nversion\s*=\s*")([^"]+)(")/;
-/** Pulse's own entry in Cargo.lock. */
-const LOCK_VERSION = /(\[\[package\]\]\r?\nname = "pulse"\r?\nversion = ")([^"]+)(")/;
+/** Dipstick's own entry in Cargo.lock. */
+const LOCK_VERSION = /(\[\[package\]\]\r?\nname = "dipstick"\r?\nversion = ")([^"]+)(")/;
 
 function versions() {
   return {

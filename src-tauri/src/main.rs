@@ -3,8 +3,8 @@
 
 fn main() {
     if std::env::args().any(|argument| argument == "--json") {
-        pulse_lib::print_json();
+        dipstick_lib::print_json();
         return;
     }
-    pulse_lib::run()
+    dipstick_lib::run()
 }

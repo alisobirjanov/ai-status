@@ -121,7 +121,7 @@ themeSwitch.addEventListener("click", () => update({ theme: pageScheme(snapshot)
 document
   .querySelector("header")!
   .append(
-    el("div", "brand", brandMark(18, 3.6, 4), el("span", "brand-name", "Pulse"), devTag),
+    el("div", "brand", brandMark(18), el("span", "brand-name", "Dipstick"), devTag),
     tablist,
     el("div", "bar-end", sync, el("span", "bar-divider"), themeSwitch),
   );

@@ -61,5 +61,5 @@ jobs:
             echo "v$VERSION is already released: merging this publishes nothing. To release it, raise the version (npm run release:version) and add its CHANGELOG.md entry." >> "$GITHUB_STEP_SUMMARY"
           else
             node scripts/release.mjs check "$VERSION"
-            echo "Merging this into main releases Pulse $VERSION." >> "$GITHUB_STEP_SUMMARY"
+            echo "Merging this into main releases Dipstick $VERSION." >> "$GITHUB_STEP_SUMMARY"
           fi

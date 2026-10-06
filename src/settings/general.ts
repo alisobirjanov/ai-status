@@ -1,5 +1,5 @@
-// General: the live preview beside what it previews — the services Pulse
-// reads, how the rail looks, when Pulse looks, and the theme it is all in.
+// General: the live preview beside what it previews — the services Dipstick
+// reads, how the rail looks, when Dipstick looks, and the theme it is all in.
 
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -20,7 +20,7 @@ import {
 } from "lucide";
 
 import { claudeAccounts } from "../shared/accounts";
-import { reasonText, relative } from "../shared/format";
+import { failedText, refreshHint, relative, waitLeft } from "../shared/format";
 import { icon as productMark } from "../shared/icons";
 import { t, type StringKey } from "../shared/i18n";
 import { svg } from "../shared/rail";
@@ -98,10 +98,10 @@ function problem(account: AccountView): string | null {
   const failed = account.lastCheck?.reason;
   if (usage.state === "stale" && usage.observedAt != null) {
     const banked = t("statusFromBank", relative(usage.observedAt));
-    return failed && failed !== "notChecked" ? `${banked}. ${reasonText(failed)}` : banked;
+    return failed && failed !== "notChecked" ? `${banked}. ${failedText(failed, account)}` : banked;
   }
   const reason = usage.state === "unavailable" ? (usage.reason ?? failed) : null;
-  return reason && reason !== "notChecked" ? reasonText(reason) : null;
+  return reason && reason !== "notChecked" ? failedText(reason, account) : null;
 }
 
 function checkedText(account: AccountView): string {
@@ -220,8 +220,9 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     card.plan.hidden = card.checked.hidden = !account.enabled;
     card.planValue.textContent = account.usage.plan ?? "–";
     card.checkedValue.textContent = checkedText(account);
-    card.refresh.disabled = !account.enabled || account.refreshing;
+    card.refresh.disabled = !account.enabled || account.refreshing || waitLeft(account) > 0;
     card.refresh.classList.toggle("spinning", account.refreshing);
+    card.refresh.title = refreshHint(account);
 
     const why = problem(account);
     card.problem.hidden = !why;
@@ -391,9 +392,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     });
 
     interval.set(settings.refreshMinutes ?? 0);
-    const busy = snap.accounts.some((account) => account.enabled && account.refreshing);
-    refreshAll.disabled = busy || settings.enabled.length === 0;
-    refreshAll.classList.toggle("spinning", busy);
+    applyRefreshAll(snap);
 
     check(themeButtons.values(), themeButtons.get(settings.theme));
     railDark.set(settings.railStaysDark);
@@ -402,6 +401,14 @@ export function general(update: (patch: SettingsPatch) => void): Page {
     glassLevelRow.hidden = !settings.glass;
 
     stage.apply(snap);
+  }
+
+  /** Busy while a check is out; held while every service waits out a refusal. */
+  function applyRefreshAll(snap: Snapshot) {
+    const on = snap.accounts.filter((account) => account.enabled);
+    const busy = on.some((account) => account.refreshing);
+    refreshAll.disabled = busy || on.length === 0 || on.every((account) => waitLeft(account) > 0);
+    refreshAll.classList.toggle("spinning", busy);
   }
 
   return {
@@ -413,6 +420,7 @@ export function general(update: (patch: SettingsPatch) => void): Page {
         const card = cards.get(account.id as Provider);
         if (card) applyService(card, account, snapshot);
       }
+      applyRefreshAll(snapshot);
       stage.tick();
     },
   };

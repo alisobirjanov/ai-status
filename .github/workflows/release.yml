@@ -124,12 +124,12 @@ jobs:
       - name: Pages
         run: npm run build
 
-      # A release goes to everyone who has Pulse installed; the tests are the
+      # A release goes to everyone who has Dipstick installed; the tests are the
       # last thing between a regression in the rules and that.
       - name: Tests
         run: npm test
 
-      # The signature is the whole trust story: an installed Pulse runs an
+      # The signature is the whole trust story: an installed Dipstick runs an
       # update only if it verifies against the public key built into it.
       - name: Build and sign
         env:
@@ -142,7 +142,7 @@ jobs:
           fi
           npx tauri build
 
-          BUILT="src-tauri/target/release/bundle/nsis/Pulse_${VERSION}_x64-setup.exe"
+          BUILT="src-tauri/target/release/bundle/nsis/Dipstick_${VERSION}_x64-setup.exe"
           for FILE in "$BUILT" "$BUILT.sig"; do
             if [ ! -s "$FILE" ]; then
               echo "::error::$FILE was not built."
@@ -151,7 +151,7 @@ jobs:
             fi
           done
 
-          INSTALLER="Pulse-${VERSION}-x64-setup.exe"
+          INSTALLER="Dipstick-${VERSION}-x64-setup.exe"
           OUT="$RUNNER_TEMP/release"
           mkdir -p "$OUT"
           cp "$BUILT" "$OUT/$INSTALLER"
@@ -191,7 +191,7 @@ jobs:
           # a build that fails on the way leaves no tag, and the next push
           # to main tries again.
           gh release create "$TAG" "${ASSETS[@]}" \
-            --title "Pulse $VERSION" \
+            --title "Dipstick $VERSION" \
             --notes-file "$OUT/notes.md" \
             --target "$(git rev-parse HEAD)" \
             --draft

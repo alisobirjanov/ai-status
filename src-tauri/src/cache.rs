@@ -97,6 +97,7 @@ impl Cache {
             credit_balance: stored.credit_balance,
             origin: stored.origin,
             is_cached: true,
+            retry_after_ms: None,
         };
         restored.current(now_ms())
     }
@@ -152,7 +153,7 @@ mod tests {
     use crate::model::{Provider, WindowKind};
 
     fn scratch(name: &str) -> Cache {
-        let file = std::env::temp_dir().join(format!("pulse-cache-test-{name}-{}.json", std::process::id()));
+        let file = std::env::temp_dir().join(format!("dipstick-cache-test-{name}-{}.json", std::process::id()));
         let _ = std::fs::remove_file(&file);
         Cache::at(file)
     }

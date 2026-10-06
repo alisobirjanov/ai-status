@@ -2,7 +2,7 @@
 // `percentText`, `UsageTint` and the card's reset line.
 
 import { locale, t } from "./i18n";
-import type { Reason, UsageWindow } from "./types";
+import type { AccountView, Reason, UsageWindow } from "./types";
 
 /**
  * A whole percentage that never rounds away the fact that there is *some*,
@@ -152,6 +152,23 @@ export function relative(ms: number, style: Intl.RelativeTimeFormatStyle = "long
 
 export function reasonText(reason: Reason): string {
   return t(reason);
+}
+
+/** How long until an account refused as too frequent is asked again; 0 once it may be. */
+export function waitLeft(account: AccountView): number {
+  return account.retryAt == null ? 0 : Math.max(0, account.retryAt - Date.now());
+}
+
+/** Why a check failed — and refused as too frequent, when the next one is. */
+export function failedText(reason: Reason, account: AccountView): string {
+  const wait = waitLeft(account);
+  return reason === "rateLimited" && wait > 0 ? t("rateLimitedFor", duration(wait)) : reasonText(reason);
+}
+
+/** The refresh button's hint: what it does, or while it can't, when the next check is. */
+export function refreshHint(account: AccountView): string {
+  const wait = waitLeft(account);
+  return wait > 0 ? t("nextCheckIn", duration(wait)) : t("refresh");
 }
 
 /**

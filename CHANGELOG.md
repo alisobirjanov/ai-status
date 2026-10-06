@@ -1,9 +1,23 @@
-# Pulse for Windows — changes
+# Dipstick for Windows — changes
 
 Each release needs an entry here before its version reaches main: merging
 releases it, the release workflow refuses a version without one, and its
 words are what installed copies show when they offer the update. Russian
 first, then English.
+
+## 0.1.10
+
+**Русский**
+
+- Pulse теперь называется Dipstick, и у него новый значок: две полоски, оранжевая для Claude и сиреневая для Codex. Обновление переносит настройки и подключённые аккаунты, автозапуск и ярлыки, а старый Pulse удаляет. Если значок Pulse был закреплён на панели задач, закрепите Dipstick заново.
+- Значок в трее теперь живой: каждая полоска заполнена по лимиту Claude или Codex, который ближе всего к исчерпанию. Щелчок по значку открывает Dipstick, а показать или скрыть панель можно из меню значка.
+- Исправлено: после нескольких обновлений подряд данные могли надолго остаться старыми с надписью «Слишком частые проверки», пока приложение продолжало спрашивать снова и снова. Теперь, получив такой ответ, оно ждёт 5 минут (или сколько попросит сервис, но не больше часа) и не спрашивает до этого. В настройках и на карточке видно, когда будет следующая проверка, а кнопка обновления до тех пор неактивна.
+
+**English**
+
+- Pulse is now called Dipstick, with a new icon: two sticks, orange for Claude and lilac for Codex. The update brings over your settings and connected accounts, starting at login and your shortcuts, and removes the old Pulse. If Pulse was pinned to the taskbar, pin Dipstick again.
+- The tray icon is live: each stick fills to the Claude or Codex limit closest to running out. Clicking the icon opens Dipstick; show or hide the rail from the icon's menu.
+- Fixed: after a few refreshes in a row, the figures could stay old with "Checking too often" for a long time, while the app kept asking again and again. Now, given that answer, it waits 5 minutes (or as long as the service asks, up to an hour) and doesn't ask before then. Settings and the card show when the next check is, and the refresh button is off until then.
 
 ## 0.1.9
 

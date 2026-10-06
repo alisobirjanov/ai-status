@@ -14,14 +14,14 @@ In the pull request (or on `main`):
 npm run release:version 0.2.0   # writes the version everywhere it lives
 # write the "## 0.2.0" entry in CHANGELOG.md — Russian, then English
 npm run release:check 0.2.0     # what the workflow will check first
-git commit -am "Pulse 0.2.0"
+git commit -am "Dipstick 0.2.0"
 ```
 
 Merge it, and 0.2.0 is released. No tag to push.
 
 The pull request already says what merging will do: its **Build** check
 fails if the new version has no `CHANGELOG.md` entry or disagrees with a
-file, and its summary says "Merging this into main releases Pulse 0.2.0" —
+file, and its summary says "Merging this into main releases Dipstick 0.2.0" —
 or, for a version already released, that merging publishes nothing.
 
 **A merge that does not raise the version releases nothing.** An installed
@@ -37,7 +37,7 @@ On `main`, the workflow then:
 3. builds the NSIS installer and signs it for the updater;
 4. writes `latest.json` — the version, the changelog entry, the installer's
    address and its signature;
-5. publishes `Pulse-<version>-x64-setup.exe`, its `.sig` and `latest.json` as
+5. publishes `Dipstick-<version>-x64-setup.exe`, its `.sig` and `latest.json` as
    release `v<version>`: as a draft until every file is there, then as the
    latest release, making tag `v<version>` on the commit it built;
 6. asks the feed the way an installed copy does, and fails if it does not
@@ -68,7 +68,7 @@ to `main` and every pull request, without building an installer.
 
 `src-tauri/src/updater.rs`, with `tauri-plugin-updater`.
 
-- A minute after launch, and then every six hours by the wall clock, Pulse
+- A minute after launch, and then every six hours by the wall clock, Dipstick
   asks `https://github.com/alisobirjanov/ai-status/releases/latest/download/latest.json`.
   A PC that slept through the interval asks when it wakes. **Settings →
   Updates** can turn the automatic check off; **Check Now** always works.
@@ -77,14 +77,19 @@ to `main` and every pull request, without building an installer.
   as **Install Update x.y.z…** at the top of the tray menu and in Settings,
   with the changelog entry under it.
 - **Nothing installs by itself.** Installing replaces the running app, so it
-  happens only when somebody chooses it. Pulse downloads the installer
+  happens only when somebody chooses it. Dipstick downloads the installer
   (progress in Settings), checks its signature, and hands over to it; the
   installer runs in passive mode — a progress bar, no questions — and starts
-  Pulse again when it is done.
+  Dipstick again when it is done.
 - Before the first release there is no feed, and the automatic check fails
   quietly. Only **Check Now** reports a failure.
-- **Pulse Dev never updates.** The feed's installer is the real Pulse, and
-  installing it from a dev copy would replace somebody's installed Pulse. Its
+- **Pulse updates to Dipstick the same way.** Dipstick was Pulse until
+  0.1.10, and the feed's address didn't change. To Windows, Dipstick is a
+  new app: its installer removes Pulse, and Dipstick moves Pulse's settings
+  and accounts on its first start. See *Renamed from Pulse* in
+  [development.md](development.md).
+- **Dipstick Dev never updates.** The feed's installer is the real Dipstick, and
+  installing it from a dev copy would replace somebody's installed Dipstick. Its
   Settings say so instead of offering a check.
 
 ## The signing key
@@ -115,8 +120,8 @@ them means no installed copy can be updated again: a new key pair needs a new
 public key in the app, which only a manual reinstall delivers. Never commit
 the private key.
 
-To build a signed installer locally (it is the real Pulse — build it, don't
-run it on a PC where Pulse is installed):
+To build a signed installer locally (it is the real Dipstick — build it, don't
+run it on a PC where Dipstick or Pulse is installed):
 
 ```powershell
 $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content -Raw $HOME\.tauri\pulse-windows.key
@@ -125,7 +130,7 @@ npx tauri build
 ```
 
 Without the key `tauri build` stops at the updater signature. `npm run app`
-(Pulse Dev) never needs it.
+(Dipstick Dev) never needs it.
 
 ## Not done yet
 
