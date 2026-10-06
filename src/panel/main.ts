@@ -20,7 +20,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import { TURN_MS, claudeAccounts, railAccounts as onRail, takesTurns } from "../shared/accounts";
-import { colours, isSpent, percentText, reasonText, relative, resetText, shortWindowName, shownFraction, tint, untilText, windowName } from "../shared/format";
+import { colours, hiddenEmail, isSpent, percentText, reasonText, relative, resetText, shortWindowName, shownFraction, tint, untilText, windowName } from "../shared/format";
 import { t } from "../shared/i18n";
 import { icon } from "../shared/icons";
 import { RING, ringItem, shownWindows, svg } from "../shared/rail";
@@ -610,7 +610,9 @@ function paragraph(className: string, text: string): HTMLElement {
 function whoText(account: AccountView): string | null {
   const several = account.provider === "claudeCode" && (snapshot?.settings.claudeAccounts.length ?? 0) > 0;
   if (!several && !account.label) return null;
-  return [account.label, account.email ?? (account.label ? null : account.title)].filter(Boolean).join(" · ");
+  // The whole email is a click away in Settings; a card that comes up on a hover never shows it.
+  const email = account.email && hiddenEmail(account.email);
+  return [account.label, email || (account.label ? null : account.title)].filter(Boolean).join(" · ");
 }
 
 /** One account among several on a card: what it is called, and a line for each limit. */
